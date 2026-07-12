@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="BanglaHost">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/mariadb-test2.zip!/" />
+      <root url="jar://$PROJECT_DIR$/mariadb-test.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
