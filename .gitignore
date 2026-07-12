@@ -1,0 +1,44 @@
+# .NET / Visual Studio
+bin/
+obj/
+out/
+[Bb]uild/
+.vs/
+.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# IntelliJ / JetBrains
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Logs and temporary files
+*.log
+*.binlog
+apache_stderr.txt
+apache_stdout.txt
+*.tmp
+*.bak
+
+# Archives
+*.zip
+*.msix
+*.appx
+*.appxbundle
+*.msixbundle
+
+# Build artifacts
+publish/
+sln-publish/
+msix-layout/
+installer/
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
