@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "dgSpecHash": "khFmJETHsCk=",
+  "success": true,
+  "projectFilePath": "C:\\xampp\\htdocs\\BanglaHost\\src\\BanglaHost.App\\BanglaHost.App.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.data.sqlite\\8.0.10\\microsoft.data.sqlite.8.0.10.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.data.sqlite.core\\8.0.10\\microsoft.data.sqlite.core.8.0.10.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.web.webview2\\1.0.2651.64\\microsoft.web.webview2.1.0.2651.64.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.windows.sdk.buildtools\\10.0.26100.1742\\microsoft.windows.sdk.buildtools.10.0.26100.1742.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.windowsappsdk\\1.6.241114003\\microsoft.windowsappsdk.1.6.241114003.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.6\\sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\sqlitepclraw.core\\2.1.6\\sqlitepclraw.core.2.1.6.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.6\\sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.6\\sqlitepclraw.provider.e_sqlite3.2.1.6.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.28\\microsoft.netcore.app.runtime.win-x64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.netcore.app.runtime.win-arm64\\8.0.28\\microsoft.netcore.app.runtime.win-arm64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.28\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-arm64\\8.0.28\\microsoft.windowsdesktop.app.runtime.win-arm64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.28\\microsoft.aspnetcore.app.runtime.win-x64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-arm64\\8.0.28\\microsoft.aspnetcore.app.runtime.win-arm64.8.0.28.nupkg.sha512",
+    "C:\\Users\\shahi\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.19041.56\\microsoft.windows.sdk.net.ref.10.0.19041.56.nupkg.sha512"
+  ],
+  "logs": []
+}

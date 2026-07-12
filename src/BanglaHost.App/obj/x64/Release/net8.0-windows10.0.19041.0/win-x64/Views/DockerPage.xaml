@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page x:ConnectionId='1'
+    x:Class="BanglaHost.App.Views.DockerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views"
+                        >
+
+    <Grid Padding="24" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Docker Manager" FontSize="26" FontWeight="SemiBold"/>
+            <TextBlock x:ConnectionId='18' x:Name="DockerStatus" Opacity="0.7" Text="Checking Docker status..."/>
+        </StackPanel>
+
+        <Border Grid.Row="1" BorderThickness="1" CornerRadius="8" Padding="12"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Compose Projects" FontWeight="SemiBold"/>
+                <Grid ColumnSpacing="8" RowSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:ConnectionId='14' x:Name="ComposeDirBox" Grid.Column="0" Header="Compose directory" PlaceholderText="C:\path\to\project with docker-compose.yml"/>
+                    <Button x:ConnectionId='15' Grid.Column="1" Content="Up"                         Style="{StaticResource AccentButtonStyle}"/>
+                    <Button x:ConnectionId='16' Grid.Column="2" Content="Down"                          />
+                    <Button x:ConnectionId='17' Grid.Column="3" Content="Open Shell"                           />
+                </Grid>
+                <TextBlock x:ConnectionId='13' x:Name="ComposeStatus" Opacity="0.75" Text="Enter a folder that contains a compose file."/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" BorderThickness="1" CornerRadius="8" Padding="4"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <Grid>
+                <ListView x:ConnectionId='2' x:Name="ContainerList" SelectionMode="None">
+                    <ListView.Header>
+                        <Grid Padding="12,8" Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Name" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="Image" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="Status" FontWeight="Bold"/>
+                        </Grid>
+                    </ListView.Header>
+                    <ListView.ItemTemplate>
+                        <DataTemplate                                >
+                            <Grid x:ConnectionId='5' Padding="12,8" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:ConnectionId='6'                      VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                <TextBlock x:ConnectionId='7' Grid.Column="1"                       VerticalAlignment="Center" Opacity="0.7"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Ellipse x:ConnectionId='11' Width="8" Height="8"                            />
+                                    <TextBlock x:ConnectionId='12'                        FontSize="12"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                                    <Button x:ConnectionId='8' Content="Start"                                                                     />
+                                    <Button x:ConnectionId='9' Content="Stop"                                                                   />
+                                    <Button x:ConnectionId='10' Content="Remove"                                       />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <TextBlock x:ConnectionId='3' x:Name="EmptyText" Text="No containers found." Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.6"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>
+

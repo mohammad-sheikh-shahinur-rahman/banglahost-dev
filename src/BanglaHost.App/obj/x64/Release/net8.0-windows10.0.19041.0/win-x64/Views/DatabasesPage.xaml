@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.DatabasesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views">
+
+    <ScrollViewer>
+    <StackPanel Padding="24" Spacing="16">
+        <TextBlock x:ConnectionId='2' x:Name="PageTitle" Text="Databases" FontSize="26" FontWeight="SemiBold"/>
+
+        <!-- servers -->
+        <Border BorderThickness="1" CornerRadius="8" Padding="12"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock x:ConnectionId='40' x:Name="DbEngineLabel" Text="MySQL / MariaDB" Width="140" VerticalAlignment="Center" Opacity="0.7"/>
+                    <Button x:ConnectionId='41' x:Name="StartDbBtn" Content="Start"                       Style="{StaticResource AccentButtonStyle}"/>
+                    <Button x:ConnectionId='42' x:Name="StopDbBtn"  Content="Stop"                      />
+                    <Button x:ConnectionId='43' Content="Root password…"                     />
+                    <TextBlock x:ConnectionId='44' x:Name="RootPwStatus" VerticalAlignment="Center" Opacity="0.7" FontSize="12"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="PostgreSQL" Width="120" VerticalAlignment="Center" Opacity="0.7"/>
+                    <Button x:ConnectionId='35' x:Name="StartPgBtn" Content="Start"                      />
+                    <Button x:ConnectionId='36' x:Name="StopPgBtn"  Content="Stop"                      />
+                    <Button x:ConnectionId='37' x:Name="InstallPgBtn" Content="Install PostgreSQL"                        />
+                    <TextBlock x:ConnectionId='38' x:Name="PgStatus" VerticalAlignment="Center" Opacity="0.7" FontSize="12"/>
+                    <ProgressRing x:ConnectionId='39' x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="MongoDB" Width="120" VerticalAlignment="Center" Opacity="0.7"/>
+                    <Button x:ConnectionId='31' x:Name="StartMongoBtn" Content="Start"                         />
+                    <Button x:ConnectionId='32' x:Name="StopMongoBtn"  Content="Stop"                         />
+                    <Button x:ConnectionId='33' x:Name="InstallMongoBtn" Content="Install MongoDB"                           />
+                    <TextBlock x:ConnectionId='34' x:Name="MongoStatus" VerticalAlignment="Center" Opacity="0.7" FontSize="12"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- create -->
+        <Border BorderThickness="1" CornerRadius="8" Padding="12"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <ComboBox x:ConnectionId='26' x:Name="EngineBox" Width="140" PlaceholderText="no engine running"                                  />
+                <TextBox x:ConnectionId='27' x:Name="NameBox" PlaceholderText="new database name" Width="200"/>
+                <TextBox x:ConnectionId='28' x:Name="PassBox" PlaceholderText="user password (MySQL, optional)" Width="200"/>
+                <Button x:ConnectionId='29' x:Name="GenBtn" Content="Generate"                    />
+                <Button x:ConnectionId='30' x:Name="CreateBtn" Content="Create"                      Style="{StaticResource AccentButtonStyle}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- list -->
+        <Border BorderThickness="1" CornerRadius="8" Padding="4"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <StackPanel>
+                <Grid Padding="8,6" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock x:ConnectionId='24' x:Name="ShowLabel" Text="Show" VerticalAlignment="Center" Opacity="0.7"/>
+                        <ComboBox x:ConnectionId='25' x:Name="DbPageSizeBox" Width="80"                                      />
+                    </StackPanel>
+                    <TextBox x:ConnectionId='23' Grid.Column="2" x:Name="DbSearchBox" PlaceholderText="search…" Width="220"                               />
+                </Grid>
+                <TextBlock x:ConnectionId='7' x:Name="EmptyDbs" Text="No databases yet." Opacity="0.6" Padding="10" Visibility="Collapsed"/>
+                <ItemsControl x:ConnectionId='8' x:Name="DbList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate                         >
+                            <Grid x:ConnectionId='14' Padding="8,6" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:ConnectionId='15' Grid.Column="0"                      VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="7,2" Margin="0,0,6,0"
+                                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
+                                    <TextBlock x:ConnectionId='22'                        FontSize="11" Opacity="0.8"/>
+                                </Border>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                    <Button x:ConnectionId='16'                     ToolTipService.ToolTip="Database Actions">
+                                        <FontIcon Glyph="&#xE712;" FontSize="14"/>
+                                        <Button.Flyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem x:ConnectionId='17' Text="Change Password…"                                                                            />
+                                                <MenuFlyoutItem x:ConnectionId='18' Text="Export to SQL"                                                                        />
+                                                <MenuFlyoutItem x:ConnectionId='19' Text="Import from SQL"                                                                        />
+                                                <MenuFlyoutSeparator x:ConnectionId='20'                               />
+                                                <MenuFlyoutItem x:ConnectionId='21' Text="Drop"                                      />
+                                            </MenuFlyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Grid x:ConnectionId='9' x:Name="DbPager" Padding="8,8" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <Button x:ConnectionId='10' x:Name="DbPrevBtn"                     ><FontIcon Glyph="&#xE76B;" FontSize="12"/></Button>
+                        <TextBlock x:ConnectionId='11' x:Name="DbPageLabel" VerticalAlignment="Center" Opacity="0.8"/>
+                        <Button x:ConnectionId='12' x:Name="DbNextBtn"                     ><FontIcon Glyph="&#xE76C;" FontSize="12"/></Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="DB tools:" VerticalAlignment="Center" Opacity="0.7"/>
+            <Button x:ConnectionId='3' Content="phpMyAdmin"                  />
+            <Button x:ConnectionId='4' Content="Adminer"                         />
+            <Button x:ConnectionId='5' Content="phpLiteAdmin"                           />
+            <Button x:ConnectionId='6' Content="Mailpit"                         />
+        </StackPanel>
+    </StackPanel>
+    </ScrollViewer>
+</Page>
+

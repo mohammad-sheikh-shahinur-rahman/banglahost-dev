@@ -1,0 +1,169 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views">
+
+    <Page.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer>
+    <StackPanel Padding="24" Spacing="16">
+
+        <!-- header + global actions -->
+        <Grid>
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock x:ConnectionId='53' x:Name="PageTitle" Text="Dashboard" FontSize="26" FontWeight="SemiBold"/>
+                <TextBlock x:ConnectionId='54' x:Name="SubTitle" Opacity="0.7" Text="Local web stack"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:ConnectionId='46' x:Name="StartBtn"                        Style="{StaticResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE768;" FontSize="13"/><TextBlock x:ConnectionId='52' x:Name="StartBtnText" Text="Start all"/></StackPanel>
+                </Button>
+                <Button x:ConnectionId='47' x:Name="StopBtn"                      >
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE71A;" FontSize="13"/><TextBlock x:ConnectionId='51' x:Name="StopBtnText" Text="Stop all"/></StackPanel>
+                </Button>
+                <Button x:ConnectionId='48' x:Name="RestartBtn"                         >
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="13"/><TextBlock x:ConnectionId='50' x:Name="RestartBtnText" Text="Restart"/></StackPanel>
+                </Button>
+                <ProgressRing x:ConnectionId='49' x:Name="Busy" IsActive="False" Width="20" Height="20" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- status cards: Web Server / PHP / Database / Cache -->
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <StackPanel Spacing="3">
+                    <Grid>
+                        <TextBlock x:ConnectionId='44' x:Name="WebCardLabel" Text="Web Server" Opacity="0.6" FontSize="12"/>
+                        <Ellipse x:ConnectionId='45' x:Name="WebDot" Width="9" Height="9" HorizontalAlignment="Right" Fill="Gray"/>
+                    </Grid>
+                    <TextBlock x:ConnectionId='42' x:Name="WebVal" FontSize="18" FontWeight="SemiBold" Text="—"/>
+                    <TextBlock x:ConnectionId='43' x:Name="WebSub" Opacity="0.6" FontSize="12" Text=""/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource Card}">
+                <StackPanel Spacing="3">
+                    <Grid>
+                        <TextBlock x:ConnectionId='40' x:Name="PhpCardLabel" Text="PHP" Opacity="0.6" FontSize="12"/>
+                        <Ellipse x:ConnectionId='41' x:Name="PhpDot" Width="9" Height="9" HorizontalAlignment="Right" Fill="Gray"/>
+                    </Grid>
+                    <TextBlock x:ConnectionId='38' x:Name="PhpVal" FontSize="18" FontWeight="SemiBold" Text="—" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:ConnectionId='39' x:Name="PhpSub" Opacity="0.6" FontSize="12" Text=""/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <StackPanel Spacing="3">
+                    <Grid>
+                        <TextBlock x:ConnectionId='36' x:Name="DbCardLabel" Text="Database" Opacity="0.6" FontSize="12"/>
+                        <Ellipse x:ConnectionId='37' x:Name="DbDot" Width="9" Height="9" HorizontalAlignment="Right" Fill="Gray"/>
+                    </Grid>
+                    <TextBlock x:ConnectionId='34' x:Name="DbVal" FontSize="18" FontWeight="SemiBold" Text="—"/>
+                    <TextBlock x:ConnectionId='35' x:Name="DbSub" Opacity="0.6" FontSize="12" Text=""/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource Card}">
+                <StackPanel Spacing="3">
+                    <Grid>
+                        <TextBlock x:ConnectionId='32' x:Name="CacheCardLabel" Text="Cache" Opacity="0.6" FontSize="12"/>
+                        <Ellipse x:ConnectionId='33' x:Name="CacheDot" Width="9" Height="9" HorizontalAlignment="Right" Fill="Gray"/>
+                    </Grid>
+                    <TextBlock x:ConnectionId='30' x:Name="CacheVal" FontSize="18" FontWeight="SemiBold" Text="—"/>
+                    <TextBlock x:ConnectionId='31' x:Name="CacheSub" Opacity="0.6" FontSize="12" Text=""/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- metrics: CPU / Memory / Storage / Network -->
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <StackPanel Spacing="4"><TextBlock x:ConnectionId='27' x:Name="CpuLabel" Text="CPU" Opacity="0.6" FontSize="12"/><TextBlock x:ConnectionId='28' x:Name="CpuText" FontSize="20" FontWeight="SemiBold" Text="—"/>
+                    <Viewbox Height="30" HorizontalAlignment="Stretch" Stretch="Fill">
+                        <Canvas Width="200" Height="30"><Polyline x:ConnectionId='29' x:Name="CpuSpark" Stroke="{ThemeResource AccentFillColorDefaultBrush}" StrokeThickness="1.5" StrokeLineJoin="Round"/></Canvas>
+                    </Viewbox></StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource Card}">
+                <StackPanel Spacing="4">
+                    <TextBlock x:ConnectionId='23' x:Name="MemLabel" Text="Memory" Opacity="0.6" FontSize="12"/>
+                    <TextBlock x:ConnectionId='24' x:Name="MemText" FontSize="20" FontWeight="SemiBold" Text="—"/>
+                    <ProgressBar x:ConnectionId='25' x:Name="MemBar" Minimum="0" Maximum="100"/>
+                    <TextBlock x:ConnectionId='26' x:Name="BhMemText" Opacity="0.6" FontSize="11" Text="BanglaHost: —"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <StackPanel Spacing="4"><TextBlock x:ConnectionId='20' x:Name="DiskLabel" Text="Storage" Opacity="0.6" FontSize="12"/><TextBlock x:ConnectionId='21' x:Name="DiskText" FontSize="20" FontWeight="SemiBold" Text="—"/><ProgressBar x:ConnectionId='22' x:Name="DiskBar" Minimum="0" Maximum="100"/></StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource Card}">
+                <StackPanel Spacing="4"><TextBlock x:ConnectionId='17' x:Name="NetLabel" Text="Network" Opacity="0.6" FontSize="12"/>
+                    <TextBlock x:ConnectionId='18' x:Name="NetDown" FontSize="14" FontWeight="SemiBold" Text="&#xE74B;  —"/>
+                    <TextBlock x:ConnectionId='19' x:Name="NetUp" FontSize="14" FontWeight="SemiBold" Text="&#xE74A;  —"/></StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- websites -->
+        <TextBlock x:ConnectionId='2' x:Name="WebHeader" Text="Websites" FontSize="16" FontWeight="SemiBold"/>
+        <local:SiteListControl x:ConnectionId='3' x:Name="SiteList"/>
+
+        <!-- web tools -->
+        <TextBlock x:ConnectionId='4' x:Name="WebToolsHeader" Text="Web tools" FontSize="16" FontWeight="SemiBold"/>
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE968;" FontSize="16"/><TextBlock Text="phpMyAdmin" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:ConnectionId='14' x:Name="PmaStatus" Text="Off" Opacity="0.6" FontSize="12"/>
+                    <Grid>
+                        <ToggleSwitch x:ConnectionId='15' x:Name="PmaToggle" OffContent="Off" OnContent="On"                      />
+                        <Button x:ConnectionId='16' x:Name="PmaOpen" Content="Open"                       HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="False"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource Card}">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8A1;" FontSize="16"/><TextBlock Text="Adminer" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:ConnectionId='11' x:Name="AdmStatus" Text="Off" Opacity="0.6" FontSize="12"/>
+                    <Grid>
+                        <ToggleSwitch x:ConnectionId='12' x:Name="AdmToggle" OffContent="Off" OnContent="On"                      />
+                        <Button x:ConnectionId='13' x:Name="AdmOpen" Content="Open"                       HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="False"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource Card}">
+                <StackPanel Spacing="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE715;" FontSize="16"/><TextBlock Text="Mailpit" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:ConnectionId='8' x:Name="MailStatus" Text="Off" Opacity="0.6" FontSize="12"/>
+                    <Grid>
+                        <ToggleSwitch x:ConnectionId='9' x:Name="MailToggle" OffContent="Off" OnContent="On"                       />
+                        <Button x:ConnectionId='10' x:Name="MailOpen" Content="Open"                        HorizontalAlignment="Right" VerticalAlignment="Center" IsEnabled="False"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Expander x:ConnectionId='5' x:Name="LogExpander" Header="Activity log" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+            <ScrollViewer x:ConnectionId='6' x:Name="LogScroll" Height="120">
+                <TextBlock x:ConnectionId='7' x:Name="LogBox" FontFamily="Consolas" FontSize="12" TextWrapping="Wrap"/>
+            </ScrollViewer>
+        </Expander>
+    </StackPanel>
+    </ScrollViewer>
+</Page>
+

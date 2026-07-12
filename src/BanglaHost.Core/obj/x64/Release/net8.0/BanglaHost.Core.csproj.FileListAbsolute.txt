@@ -1,0 +1,13 @@
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.csproj.AssemblyReference.cache
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.AssemblyInfoInputs.cache
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.AssemblyInfo.cs
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.csproj.CoreCompileInputs.cache
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.sourcelink.json
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\bin\x64\Release\net8.0\BanglaHost.Core.deps.json
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\bin\x64\Release\net8.0\BanglaHost.Core.dll
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\bin\x64\Release\net8.0\BanglaHost.Core.pdb
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.dll
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\refint\BanglaHost.Core.dll
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\BanglaHost.Core.pdb
+C:\xampp\htdocs\BanglaHost\src\BanglaHost.Core\obj\x64\Release\net8.0\ref\BanglaHost.Core.dll

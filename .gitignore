@@ -1,44 +1,19 @@
-# .NET / Visual Studio
-bin/
-obj/
-out/
-[Bb]uild/
+# Ignore build artifacts
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
 .vs/
-.user
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# IntelliJ / JetBrains
 .idea/
-*.iws
-*.iml
-*.ipr
 
-# Logs and temporary files
+# Ignore logs
 *.log
 *.binlog
-apache_stderr.txt
-apache_stdout.txt
-*.tmp
-*.bak
+*.txt
 
-# Archives
-*.zip
+# Ignore installers and zip files
 *.msix
-*.appx
-*.appxbundle
-*.msixbundle
+*.exe
+*.zip
 
-# Build artifacts
-publish/
-sln-publish/
-msix-layout/
-installer/
-
-# OS files
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-.DS_Store
+# Keep everything else
+!src/
