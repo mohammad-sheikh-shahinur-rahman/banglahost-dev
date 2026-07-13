@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.GoRustPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="24" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Spacing="2">
+            <TextBlock Text="Go / Rust" FontSize="26" FontWeight="SemiBold"/>
+            <TextBlock Text="Go and Rust runtime management" FontSize="13" Opacity="0.6"/>
+        </StackPanel>
+        <Border Grid.Row="1" BorderThickness="1" CornerRadius="8" Padding="24"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+            <TextBlock Text="Coming soon" Opacity="0.5" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Page>

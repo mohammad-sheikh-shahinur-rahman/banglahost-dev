@@ -1,0 +1,34 @@
+# ── .NET / Visual Studio ─────────────────────────────────────────────
+bin/
+obj/
+.vs/
+*.user
+*.binlog
+[Dd]ebug/
+[Rr]elease/
+
+# ── Build outputs ────────────────────────────────────────────────────
+publish/
+sln-publish/
+msix-layout/
+installer/dist/
+
+# ── Test / temp files ────────────────────────────────────────────────
+*.zip
+*.log
+build.log
+build2.log
+apache_stderr.txt
+apache_stdout.txt
+
+# ── IDE ──────────────────────────────────────────────────────────────
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
+
+# ── OS ───────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
