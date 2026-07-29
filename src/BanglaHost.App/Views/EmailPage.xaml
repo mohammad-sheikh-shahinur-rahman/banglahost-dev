@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.EmailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:BanglaHost.Core">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FFEC4899" Offset="0"/>
+                                <GradientStop Color="#FFF472B6" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE715;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Email &amp; SMTP" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Configure SMTP profiles, test email delivery, and run MailHog for local email capture."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: SMTP Config -->
+                <StackPanel Grid.Column="0" Spacing="16">
+                    <Border Style="{StaticResource PremiumCard}">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="SMTP Profile" Style="{StaticResource CardTitleStyle}"/>
+                            <Grid ColumnSpacing="12" RowSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="SMTP Host" FontSize="12" Opacity="0.7"/>
+                                    <TextBox x:Name="SmtpHostBox" Text="smtp.gmail.com"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Port" FontSize="12" Opacity="0.7"/>
+                                    <TextBox x:Name="SmtpPortBox" Text="587"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                                    <TextBlock Text="Username / Email" FontSize="12" Opacity="0.7"/>
+                                    <TextBox x:Name="SmtpUserBox"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+                                    <TextBlock Text="Password / App Key" FontSize="12" Opacity="0.7"/>
+                                    <PasswordBox x:Name="SmtpPassBox"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="4">
+                                    <TextBlock Text="Test Recipient" FontSize="12" Opacity="0.7"/>
+                                    <TextBox x:Name="TestToBox" PlaceholderText="recipient@example.com"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="12">
+                                    <ToggleSwitch x:Name="SslToggle" Header="Use SSL/TLS" IsOn="True"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,8,0,0">
+                                <Button x:Name="SaveSmtpBtn" Content="Save Profile" Click="SaveSmtpBtn_Click" Style="{StaticResource PillButton}"/>
+                                <Button x:Name="TestSmtpBtn" Content="Send Test Email" Click="TestSmtpBtn_Click" 
+                                        Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White"/>
+                            </StackPanel>
+                            <TextBlock x:Name="SmtpStatus" Style="{StaticResource LabelStyle}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- MailHog -->
+                    <Border Style="{StaticResource PremiumCard}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="MailHog (Local Email Trap)" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Text="Capture all outgoing emails locally for testing. No real emails sent." FontSize="13" Opacity="0.7" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Button x:Name="StartMailhogBtn" Content="Start MailHog" Click="StartMailhog_Click" Style="{StaticResource PillButton}"/>
+                                <Button x:Name="StopMailhogBtn" Content="Stop" Click="StopMailhog_Click" CornerRadius="16"/>
+                                <Button Content="Open UI (8025)" Click="OpenMailhog_Click" CornerRadius="16"/>
+                            </StackPanel>
+                            <TextBlock x:Name="MailhogStatus" Style="{StaticResource LabelStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right: Log -->
+                <StackPanel Grid.Column="1" Spacing="12">
+                    <TextBlock Text="Email Send Log" FontWeight="SemiBold"/>
+                    <Border Style="{StaticResource ListCard}" MinHeight="400">
+                        <ListView x:Name="EmailLogList">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="core:EmailLogEntry">
+                                    <Grid Padding="14,10" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                        <StackPanel Spacing="3">
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <TextBlock Text="{x:Bind Subject}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{x:Bind Status}" Opacity="0.7" FontSize="12"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{x:Bind To}" FontSize="12" Opacity="0.6"/>
+                                            <TextBlock Text="{x:Bind Timestamp}" FontSize="11" Opacity="0.5"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

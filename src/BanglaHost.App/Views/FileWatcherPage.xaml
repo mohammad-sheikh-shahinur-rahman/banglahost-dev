@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.FileWatcherPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="28,24,28,28" RowSpacing="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Border Width="36" Height="36" CornerRadius="10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                            <GradientStop Color="#FF10B981" Offset="0"/>
+                            <GradientStop Color="#FF059669" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <FontIcon Glyph="&#xE71C;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Live Log Viewer" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                
+                <Grid ColumnSpacing="8" Margin="20,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="FileBox" PlaceholderText="Select a log file to watch..."/>
+                    <Button Grid.Column="1" Content="Browse..." Click="BrowseBtn_Click"/>
+                </Grid>
+                <Button Content="Clear" Click="ClearBtn_Click" Margin="10,0,0,0"/>
+            </StackPanel>
+            <TextBlock Text="Watch files (like error.log or access.log) in real-time."
+                       Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource PremiumCard}">
+            <ScrollViewer x:Name="LogScroll">
+                <TextBox x:Name="LogViewer" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="13"
+                         IsReadOnly="True" BorderThickness="0" Background="Transparent" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Page>

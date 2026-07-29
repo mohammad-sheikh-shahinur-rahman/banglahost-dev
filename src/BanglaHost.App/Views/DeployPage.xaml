@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.DeployPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:BanglaHost.Core">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF8B5CF6" Offset="0"/>
+                                <GradientStop Color="#FFD946EF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE898;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Deployment" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="Deploy your local sites to production servers with a single click." Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ════ Profiles List ════ -->
+                <StackPanel Grid.Column="0" Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Deployment Profiles" FontWeight="SemiBold"/>
+                        <Button Content="+" Padding="4,2" Click="NewProfileBtn_Click" ToolTipService.ToolTip="Create New Profile"/>
+                    </StackPanel>
+                    
+                    <Border Style="{StaticResource ListCard}" MinHeight="300">
+                        <ListView x:Name="ProfileList" SelectionChanged="ProfileList_SelectionChanged">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="core:DeployProfile">
+                                    <StackPanel Padding="10">
+                                        <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Method}" FontSize="12" Opacity="0.6"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </StackPanel>
+
+                <!-- ════ Profile Editor ════ -->
+                <Border x:Name="EditorPanel" Grid.Column="1" Style="{StaticResource PremiumCard}" Visibility="Collapsed">
+                    <StackPanel Spacing="16">
+                        <Grid>
+                            <TextBlock Text="Edit Profile" Style="{StaticResource CardTitleStyle}"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                <Button x:Name="SaveBtn" Content="Save" Click="SaveBtn_Click" Style="{StaticResource PillButton}"/>
+                                <Button x:Name="DeleteBtn" Content="Delete" Click="DeleteBtn_Click" Foreground="{StaticResource BhErrorBrush}" Style="{StaticResource PillButton}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid ColumnSpacing="16" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Profile Name" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="NameBox"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Deployment Method" FontSize="12" Opacity="0.7"/>
+                                <ComboBox x:Name="MethodBox" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="FTP" Tag="FTP"/>
+                                    <ComboBoxItem Content="SFTP" Tag="SFTP"/>
+                                    <ComboBoxItem Content="SSH" Tag="SSH"/>
+                                    <ComboBoxItem Content="GitHub" Tag="GitHub"/>
+                                    <ComboBoxItem Content="Docker" Tag="Docker"/>
+                                    <ComboBoxItem Content="Cloudflare Tunnel" Tag="CloudflareTunnel"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="4">
+                                <TextBlock Text="Local Source Directory" FontSize="12" Opacity="0.7"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="SourceBox" Grid.Column="0"/>
+                                    <Button Content="Browse..." Grid.Column="1" Click="BrowseSource_Click"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Remote Settings -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Host / Server IP" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="HostBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Port" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="PortBox" Text="22"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Username" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="UserBox"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="3" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Password / Auth Token" FontSize="12" Opacity="0.7"/>
+                                <PasswordBox x:Name="PassBox"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="4" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Remote Path" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="RemotePathBox" Text="/public_html"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="4" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Extra Arguments" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="ExtraArgsBox"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="{ThemeResource DividerStrokeColorDefaultBrush}" Height="1" Margin="0,8"/>
+
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+                            <Button x:Name="DeployBtn" Content="🚀 Deploy Now" Click="DeployBtn_Click" 
+                                    Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White" Padding="24,8"/>
+                        </StackPanel>
+                        
+                        <TextBox x:Name="LogViewer" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" Height="150"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto" IsReadOnly="True" Margin="0,16,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

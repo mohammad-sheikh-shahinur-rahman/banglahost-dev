@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.SitesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views">
+
+    <Grid Padding="28,24,28,28" RowSpacing="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ════ Header ════ -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
+            <Border Width="36" Height="36" CornerRadius="10">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                        <GradientStop Color="#FF3B82F6" Offset="0"/>
+                        <GradientStop Color="#FF06B6D4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <FontIcon Glyph="&#xE774;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock Text="Sites" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- ════ Add site form ════ -->
+        <!-- Two rows so the "Add site" button is always visible even on narrow windows (the old single
+             horizontal StackPanel overflowed the content area and clipped the button off-screen). -->
+        <Border Grid.Row="1" Style="{StaticResource PremiumCard}">
+            <StackPanel Spacing="12">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBox x:Name="NameBox" PlaceholderText="site name (e.g. myapp)" Width="200" CornerRadius="8" TextChanged="NameBox_TextChanged"/>
+                    <ComboBox x:Name="PhpBox" Width="100" SelectedIndex="0" CornerRadius="8"/>
+                    <ComboBox x:Name="TypeBox" Width="170" SelectedIndex="0" SelectionChanged="Type_Changed" CornerRadius="8">
+                        <ComboBoxItem Content="WordPress"/>
+                        <ComboBoxItem Content="Laravel"/>
+                        <ComboBoxItem Content="Symfony"/>
+                        <ComboBoxItem Content="CodeIgniter 4"/>
+                        <ComboBoxItem Content="Yii 2"/>
+                        <ComboBoxItem Content="CakePHP"/>
+                        <ComboBoxItem Content="Slim"/>
+                        <ComboBoxItem Content="Laminas"/>
+                        <ComboBoxItem Content="Joomla"/>
+                        <ComboBoxItem Content="Drupal"/>
+                        <ComboBoxItem Content="PHP (plain)"/>
+                        <ComboBoxItem Content="Static HTML"/>
+                        <ComboBoxItem Content="Node app"/>
+                        <ComboBoxItem Content="Python app"/>
+                    </ComboBox>
+                    <ComboBox x:Name="ServerBox" Width="240" SelectedIndex="0" CornerRadius="8"
+                              ToolTipService.ToolTip="nginx serves PHP on its own — all you need for PHP/WordPress. Apache is only for sites that need native .htaccess; it runs behind nginx, so choosing it uses nginx too.">
+                        <ComboBoxItem Content="nginx (serves PHP)" Tag="nginx"/>
+                        <ComboBoxItem Content="Apache (+ nginx, for .htaccess)" Tag="apache"/>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <CheckBox x:Name="SslBox" Content="HTTPS" IsChecked="True"
+                              ToolTipService.ToolTip="Issue a trusted SSL certificate now. You can also enable it later from the site's row."/>
+                    <Button x:Name="RootBtn" Click="PickRoot_Click" ToolTipService.ToolTip="Site root folder (optional — defaults to the Sites root)" CornerRadius="8">
+                        <FontIcon Glyph="&#xE8B7;" FontSize="14"/>
+                    </Button>
+                    <Button x:Name="AddBtn" Content="Add site" Click="Add_Click" Style="{StaticResource PillButton}"/>
+                    <ProgressRing x:Name="Busy" IsActive="False" Width="22" Height="22"/>
+                </StackPanel>
+                <TextBlock x:Name="PathPreview" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="13">
+                    <Run Text="Location: "/>
+                    <Run x:Name="PathRun" FontWeight="SemiBold"/>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <local:SiteListControl x:Name="SiteList" Grid.Row="2"/>
+    </Grid>
+</Page>

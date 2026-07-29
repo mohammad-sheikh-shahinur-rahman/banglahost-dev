@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.FilesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <!-- Sidebar -->
+            <ColumnDefinition Width="250"/>
+            <!-- Splitter -->
+            <ColumnDefinition Width="1"/>
+            <!-- Main Content -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ════ Sidebar ════ -->
+        <Grid Grid.Column="0" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <StackPanel Grid.Row="0" Padding="16,16,16,8" Spacing="8">
+                <TextBlock Text="File Manager" FontWeight="SemiBold" FontSize="16"/>
+                <Button Content="Go to Sites Root" HorizontalAlignment="Stretch" Click="GoToRootBtn_Click"/>
+            </StackPanel>
+            
+            <TreeView x:Name="FileTree" Grid.Row="1" Expanding="FileTree_Expanding" ItemInvoked="FileTree_ItemInvoked">
+                <TreeView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
+                            <FontIcon Glyph="{Binding Content.IconGlyph}" FontSize="14" Foreground="{Binding Content.IconBrush}"/>
+                            <TextBlock Text="{Binding Content.Name}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Grid>
+        
+        <!-- Divider -->
+        <Border Grid.Column="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}"/>
+
+        <!-- ════ Main Content ════ -->
+        <Grid Grid.Column="2" Padding="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar -->
+            <CommandBar Grid.Row="0" DefaultLabelPosition="Right" Background="Transparent" Margin="0,0,0,12">
+                <AppBarButton x:Name="SaveBtn" Icon="Save" Label="Save File" Click="SaveBtn_Click" IsEnabled="False"/>
+                <AppBarButton x:Name="RefreshBtn" Icon="Refresh" Label="Refresh" Click="RefreshBtn_Click"/>
+                <AppBarSeparator/>
+                <AppBarButton x:Name="NewFolderBtn" Icon="NewFolder" Label="New Folder" Click="NewFolderBtn_Click"/>
+                <AppBarButton x:Name="NewFileBtn" Icon="Page2" Label="New File" Click="NewFileBtn_Click"/>
+                <AppBarButton x:Name="RenameBtn" Icon="Rename" Label="Rename" Click="RenameBtn_Click"/>
+                <AppBarButton x:Name="DeleteBtn" Icon="Delete" Label="Delete" Click="DeleteBtn_Click"/>
+                <CommandBar.SecondaryCommands>
+                    <AppBarButton x:Name="ZipBtn" Label="Compress to ZIP" Click="ZipBtn_Click"/>
+                    <AppBarButton x:Name="UnzipBtn" Label="Extract ZIP" Click="UnzipBtn_Click"/>
+                    <AppBarButton x:Name="RevealBtn" Label="Reveal in Explorer" Click="RevealBtn_Click"/>
+                </CommandBar.SecondaryCommands>
+            </CommandBar>
+            
+            <TextBlock x:Name="CurrentFilePath" Grid.Row="1" FontSize="12" Opacity="0.6" Margin="0,0,0,8"/>
+            
+            <!-- Editor/Preview -->
+            <Border Grid.Row="2" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <TextBox x:Name="TextEditor" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             Padding="12" BorderThickness="0" Background="Transparent" TextChanged="TextEditor_TextChanged"
+                             Visibility="Collapsed"/>
+                    <Image x:Name="ImageViewer" Stretch="Uniform" Visibility="Collapsed" Margin="20"/>
+                    <TextBlock x:Name="PlaceholderText" Text="Select a file to view or edit" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.5"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>

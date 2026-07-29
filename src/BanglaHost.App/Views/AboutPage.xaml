@@ -1,0 +1,87 @@
+<Page
+    x:Class="BanglaHost.App.Views.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Padding="40">
+        <StackPanel Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
+            <!-- Header Section -->
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Image Source="/logo.png" Width="64" Height="64" VerticalAlignment="Center"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="About BanglaHost" Style="{ThemeResource TitleTextBlockStyle}"/>
+                    <TextBlock x:Name="VersionText" Text="Version 1.0.0" Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Line X1="0" Y1="0" X2="400" Y2="0" Stroke="{ThemeResource DividerStrokeColorDefaultBrush}" StrokeThickness="1"/>
+
+            <!-- Developer Info -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Developer Information" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                
+                <Grid RowSpacing="8" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Developer:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Mohammad Sheikh Shahinur Rahman" FontWeight="SemiBold"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Company:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="IT Amadersomaj Inc."/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Release Date:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="2024" x:Name="ReleaseDateText"/>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Support Email:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <HyperlinkButton Grid.Row="3" Grid.Column="1" Content="shahinalam3546@gmail.com" Click="Email_Click" Padding="0"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Facebook Profile:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <HyperlinkButton Grid.Row="4" Grid.Column="1" Content="Mohammad Sheikh Shahinur Rahman" NavigateUri="https://www.facebook.com/profile.php?id=61591637738044" Padding="0"/>
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Facebook Group:" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <HyperlinkButton Grid.Row="5" Grid.Column="1" Content="Join the Community" NavigateUri="https://www.facebook.com/groups/1716873689636854" Padding="0"/>
+                </Grid>
+            </StackPanel>
+
+            <Line X1="0" Y1="0" X2="400" Y2="0" Stroke="{ThemeResource DividerStrokeColorDefaultBrush}" StrokeThickness="1"/>
+
+            <!-- Links Section -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Legal &amp; Resources" Style="{ThemeResource SubtitleTextBlockStyle}" FontWeight="SemiBold"/>
+                
+                <StackPanel Orientation="Horizontal">
+                    <HyperlinkButton Content="Documentation" NavigateUri="https://www.facebook.com/groups/1716873689636854" Margin="0,0,16,8"/>
+                    <HyperlinkButton Content="Report a Bug" NavigateUri="https://www.facebook.com/groups/1716873689636854" Margin="0,0,16,8"/>
+                    <HyperlinkButton Content="Request a Feature" NavigateUri="https://www.facebook.com/groups/1716873689636854" Margin="0,0,16,8"/>
+                </StackPanel>
+                
+                <StackPanel Orientation="Horizontal">
+                    <HyperlinkButton Content="License Information" Click="License_Click" Margin="0,0,16,8"/>
+                    <HyperlinkButton Content="Third-party Licenses" Click="ThirdParty_Click" Margin="0,0,16,8"/>
+                    <HyperlinkButton Content="Privacy Policy" Click="Privacy_Click" Margin="0,0,16,8"/>
+                </StackPanel>
+            </StackPanel>
+
+            <Line X1="0" Y1="0" X2="400" Y2="0" Stroke="{ThemeResource DividerStrokeColorDefaultBrush}" StrokeThickness="1"/>
+
+            <!-- Copyright -->
+            <TextBlock Text="© IT Amadersomaj Inc. All rights reserved." Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 rescap">
+
+  <Identity
+    Name="ITAmadersomajInc.BanglaHostLocalWebServer"
+    Publisher="CN=88BD5184-3CC3-4CE2-BC26-1D0DF54D2A8E"
+    Version="1.4.3.0" />
+
+  <Properties>
+    <DisplayName>BanglaHost Local Web Server</DisplayName>
+    <PublisherDisplayName>IT Amadersomaj Inc</PublisherDisplayName>
+    <Logo>Assets\logo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us"/>
+  </Resources>
+
+  <Applications>
+    <Application
+      Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="BanglaHost Local Web Server"
+        Description="BanglaHost Local Web Server"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\logo.png"
+        Square44x44Logo="Assets\logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\logo.png" />
+        <uap:SplashScreen Image="Assets\logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

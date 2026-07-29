@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.GithubActionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF24292F" Offset="0"/>
+                                <GradientStop Color="#FF4B5563" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE78B;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="GitHub Actions" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Scaffold CI/CD workflows for your local projects to run tests and deployments on GitHub."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="16">
+                    <!-- ════ GitHub Account ════ -->
+                    <Border Style="{StaticResource PremiumCard}">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="GitHub Account" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Text="Connect your GitHub account securely using Device Flow OAuth to manage repository workflows." FontSize="13" Opacity="0.7" TextWrapping="Wrap"/>
+                            
+                            <StackPanel x:Name="LoginPanel" Spacing="12">
+                                <Button Content="Login with GitHub" Click="LoginBtn_Click" 
+                                        Style="{StaticResource PillButton}" HorizontalAlignment="Stretch"
+                                        Background="#FF24292F" Foreground="White">
+                                    <Button.ContentTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE78B;" FontSize="14"/>
+                                                <TextBlock Text="{Binding}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </Button.ContentTemplate>
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel x:Name="DeviceFlowPanel" Spacing="12" Visibility="Collapsed">
+                                <TextBlock Text="Enter this code on GitHub:" FontSize="13" HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="DeviceCodeLabel" Text="XXXX-YYYY" FontSize="28" FontWeight="Bold" HorizontalAlignment="Center" TextAlignment="Center" IsTextSelectionEnabled="True"/>
+                                <Button x:Name="OpenGithubBtn" Content="Open GitHub to Authorize" Click="OpenGithubBtn_Click" HorizontalAlignment="Stretch" Style="{StaticResource PillButton}" Background="{ThemeResource SystemAccentColor}" Foreground="White"/>
+                                <ProgressRing x:Name="PollingRing" IsActive="True" Margin="0,8,0,0"/>
+                                <TextBlock x:Name="PollingStatusLabel" Text="Waiting for authorization..." FontSize="12" Opacity="0.7" HorizontalAlignment="Center"/>
+                                <Button Content="Cancel" Click="CancelLoginBtn_Click" HorizontalAlignment="Center" Style="{StaticResource TextBlockButtonStyle}"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="ProfilePanel" Spacing="12" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <PersonPicture x:Name="AvatarPic" Width="48" Height="48"/>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock x:Name="UsernameLabel" Text="username" FontWeight="SemiBold" FontSize="15"/>
+                                        <TextBlock Text="Connected" Foreground="{ThemeResource SystemFillColorSuccessBrush}" FontSize="12"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <Button Content="Sign Out" Click="SignOutBtn_Click" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ════ Generate Workflow ════ -->
+                    <Border Style="{StaticResource PremiumCard}">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="Generate Workflow" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Text="Automatically add a .github/workflows directory with a pre-configured CI pipeline." FontSize="13" Opacity="0.7" TextWrapping="Wrap"/>
+                            
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Project Directory" FontSize="12" Opacity="0.7"/>
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="ProjectDirBox" Grid.Column="0" PlaceholderText="C:\BanglaHost\Sites\mysite"/>
+                                    <Button Content="Browse..." Grid.Column="1" Click="BrowseBtn_Click"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Project Type" FontSize="12" Opacity="0.7"/>
+                                <ComboBox x:Name="TypeBox" HorizontalAlignment="Stretch" SelectedIndex="0">
+                                    <ComboBoxItem Content="Laravel"/>
+                                    <ComboBoxItem Content="PHP"/>
+                                    <ComboBoxItem Content="Node"/>
+                                    <ComboBoxItem Content="React"/>
+                                    <ComboBoxItem Content="Vue"/>
+                                    <ComboBoxItem Content="WordPress"/>
+                                    <ComboBoxItem Content="Python"/>
+                                    <ComboBoxItem Content="HTML"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <Button Content="Scaffold Workflow" Click="ScaffoldBtn_Click" 
+                                    Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White"
+                                    HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
+                            
+                            <TextBlock x:Name="StatusLabel" Style="{StaticResource LabelStyle}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="12">
+                    <TextBlock Text="Output Log" FontWeight="SemiBold"/>
+                    <Border Style="{StaticResource PremiumCard}" MinHeight="300">
+                        <TextBox x:Name="LogViewer" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"
+                                 IsReadOnly="True" BorderThickness="0" Background="Transparent" VerticalAlignment="Stretch"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

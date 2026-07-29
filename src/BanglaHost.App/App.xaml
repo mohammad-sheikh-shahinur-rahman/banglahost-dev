@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="BanglaHost.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 BanglaHost Premium Color Palette
+                 Deep indigo → vibrant cyan accent system
+                 ══════════════════════════════════════════════════════════════ -->
+            <Color x:Key="BhAccent">#FF6366F1</Color>
+            <Color x:Key="BhAccentLight">#FF818CF8</Color>
+            <Color x:Key="BhAccentDark">#FF4F46E5</Color>
+            <Color x:Key="BhCyan">#FF06B6D4</Color>
+            <Color x:Key="BhTeal">#FF14B8A6</Color>
+
+            <!-- WinUI system accent overrides -->
+            <Color x:Key="SystemAccentColor">#FF6366F1</Color>
+            <Color x:Key="SystemAccentColorLight1">#FF818CF8</Color>
+            <Color x:Key="SystemAccentColorLight2">#FFA5B4FC</Color>
+            <Color x:Key="SystemAccentColorLight3">#FFC7D2FE</Color>
+            <Color x:Key="SystemAccentColorDark1">#FF4F46E5</Color>
+            <Color x:Key="SystemAccentColorDark2">#FF4338CA</Color>
+            <Color x:Key="SystemAccentColorDark3">#FF3730A3</Color>
+
+            <!-- Semantic status colors -->
+            <SolidColorBrush x:Key="BhSuccessBrush" Color="#FF22C55E"/>
+            <SolidColorBrush x:Key="BhWarningBrush" Color="#FFFBBF24"/>
+            <SolidColorBrush x:Key="BhDangerBrush" Color="#FFEF4444"/>
+            <SolidColorBrush x:Key="BhErrorBrush" Color="#FFEF4444"/>
+            <SolidColorBrush x:Key="BhInfoBrush" Color="#FF38BDF8"/>
+            <SolidColorBrush x:Key="BhMutedBrush" Color="#FF64748B"/>
+            <SolidColorBrush x:Key="BhBrandBrush" Color="#FF6366F1"/>
+            <!-- Gradient brushes -->
+            <LinearGradientBrush x:Key="BhGradientBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#FF6366F1" Offset="0"/>
+                <GradientStop Color="#FF06B6D4" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhGradientHorizontal" StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF6366F1" Offset="0"/>
+                <GradientStop Color="#FF818CF8" Offset="0.5"/>
+                <GradientStop Color="#FF06B6D4" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhGradientVertical" StartPoint="0.5,0" EndPoint="0.5,1">
+                <GradientStop Color="#FF6366F1" Offset="0"/>
+                <GradientStop Color="#FF06B6D4" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhSurfaceGradient" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#08818CF8" Offset="0"/>
+                <GradientStop Color="#0406B6D4" Offset="1"/>
+            </LinearGradientBrush>
+
+            <!-- Card accent-top brushes for service cards -->
+            <LinearGradientBrush x:Key="BhWebAccent" StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF22C55E" Offset="0"/>
+                <GradientStop Color="#FF16A34A" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhPhpAccent" StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF8B5CF6" Offset="0"/>
+                <GradientStop Color="#FF7C3AED" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhDbAccent" StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FF3B82F6" Offset="0"/>
+                <GradientStop Color="#FF2563EB" Offset="1"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="BhCacheAccent" StartPoint="0,0.5" EndPoint="1,0.5">
+                <GradientStop Color="#FFF59E0B" Offset="0"/>
+                <GradientStop Color="#FFD97706" Offset="1"/>
+            </LinearGradientBrush>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 Premium Card Style
+                 ══════════════════════════════════════════════════════════════ -->
+            <Style x:Key="PremiumCard" TargetType="Border">
+                <Setter Property="CornerRadius" Value="12"/>
+                <Setter Property="Padding" Value="20"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            </Style>
+
+            <!-- Compact card for tighter lists -->
+            <Style x:Key="CompactCard" TargetType="Border">
+                <Setter Property="CornerRadius" Value="10"/>
+                <Setter Property="Padding" Value="14"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            </Style>
+
+            <!-- Metric card for dashboard stats -->
+            <Style x:Key="MetricCard" TargetType="Border">
+                <Setter Property="CornerRadius" Value="12"/>
+                <Setter Property="Padding" Value="18,16"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            </Style>
+
+            <!-- List container card -->
+            <Style x:Key="ListCard" TargetType="Border">
+                <Setter Property="CornerRadius" Value="12"/>
+                <Setter Property="Padding" Value="6"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+            </Style>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 Typography Styles
+                 ══════════════════════════════════════════════════════════════ -->
+            <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="28"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+            </Style>
+
+            <Style x:Key="PageSubtitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Opacity" Value="0.65"/>
+            </Style>
+
+            <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="17"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+
+            <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+
+            <Style x:Key="LabelStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Opacity" Value="0.6"/>
+            </Style>
+
+            <Style x:Key="ValueStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+
+            <!-- ══════════════════════════════════════════════════════════════
+                 Button Styles
+                 ══════════════════════════════════════════════════════════════ -->
+            <Style x:Key="PillButton" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="CornerRadius" Value="20"/>
+                <Setter Property="Padding" Value="20,8"/>
+            </Style>
+
+            <Style x:Key="IconActionButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="CornerRadius" Value="8"/>
+            </Style>
+
+            <x:Double x:Key="StatusDotSize">10</x:Double>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

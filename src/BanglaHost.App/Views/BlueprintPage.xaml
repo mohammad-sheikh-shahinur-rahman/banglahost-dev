@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.BlueprintPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views">
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF06B6D4" Offset="0"/>
+                                <GradientStop Color="#FF8B5CF6" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE70F;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Blueprint Generator" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource PageSubtitleStyle}" Text="Save reusable site templates and spin up a new project in one click." Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Border Style="{StaticResource PremiumCard}">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Create new project from blueprint" Style="{StaticResource CardTitleStyle}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBox x:Name="ProjectName" PlaceholderText="site name (e.g. myshop)" Width="200" CornerRadius="8"/>
+                        <ComboBox x:Name="Blueprint" Width="220" SelectedIndex="0" CornerRadius="8">
+                            <ComboBoxItem Content="WordPress (blog)"/>
+                            <ComboBoxItem Content="Laravel API + Vite"/>
+                            <ComboBoxItem Content="Symfony (skeleton)"/>
+                            <ComboBoxItem Content="CodeIgniter 4"/>
+                            <ComboBoxItem Content="Slim REST API"/>
+                            <ComboBoxItem Content="Vue 3 + Vite"/>
+                            <ComboBoxItem Content="React (Vite)"/>
+                            <ComboBoxItem Content="Next.js"/>
+                            <ComboBoxItem Content="Nuxt 3"/>
+                            <ComboBoxItem Content="SvelteKit"/>
+                            <ComboBoxItem Content="Astro"/>
+                            <ComboBoxItem Content="Angular"/>
+                            <ComboBoxItem Content="Blank PHP"/>
+                            <ComboBoxItem Content="Static HTML"/>
+                        </ComboBox>
+                        <Button x:Name="GenBtn" Content="Generate" Style="{StaticResource PillButton}" Click="Gen_Click"/>
+                        <ProgressRing x:Name="Busy" IsActive="False" Width="22" Height="22"/>
+                    </StackPanel>
+                    <TextBlock x:Name="Result" Style="{StaticResource LabelStyle}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <FontIcon Glyph="&#xE70F;" FontSize="14" Foreground="#FF06B6D4"/>
+                <TextBlock Text="Saved blueprints" Style="{StaticResource SectionTitleStyle}"/>
+            </StackPanel>
+            <Border Style="{StaticResource PremiumCard}" MinHeight="120">
+                <TextBlock Text="No custom blueprints yet. Add a site with the settings you like, then use the site's menu (Save as blueprint) to keep it as a reusable template."
+                           TextWrapping="Wrap" Opacity="0.6" VerticalAlignment="Center"/>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

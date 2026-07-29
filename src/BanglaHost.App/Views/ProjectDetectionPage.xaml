@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.ProjectDetectionPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="using:System">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="24">
+            <!-- ════ Header ════ -->
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BhGradientBrush}">
+                        <FontIcon Glyph="&#xE943;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Smart Project Detection" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Analyze your project directory to detect the framework, language, database, and missing dependencies."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+            
+            <Border Style="{StaticResource PremiumCard}">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Select Project Directory" FontWeight="SemiBold"/>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="PathBox" Grid.Column="0" PlaceholderText="e.g. C:\Projects\MyAwesomeApp"/>
+                        <Button x:Name="BrowseBtn" Grid.Column="1" Content="Browse..." Click="BrowseBtn_Click" Style="{StaticResource PillButton}"/>
+                        <Button x:Name="AnalyzeBtn" Grid.Column="2" Content="Analyze" Click="AnalyzeBtn_Click" Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+            
+            <Border x:Name="ResultsPanel" Style="{StaticResource PremiumCard}" Visibility="Collapsed">
+                <StackPanel Spacing="20">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="Analysis Results" FontWeight="SemiBold" FontSize="18"/>
+                        <Border x:Name="ScoreBadge" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                            <TextBlock x:Name="ScoreText" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
+                        </Border>
+                    </StackPanel>
+                    
+                    <Grid RowSpacing="16" ColumnSpacing="24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Row 0 -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Framework:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResFramework" Grid.Row="0" Grid.Column="1" FontWeight="SemiBold"/>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Language:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResLanguage" Grid.Row="0" Grid.Column="3" FontWeight="SemiBold"/>
+                        
+                        <!-- Row 1 -->
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Package Manager:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResPkg" Grid.Row="1" Grid.Column="1" FontWeight="SemiBold"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Database:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResDb" Grid.Row="1" Grid.Column="3" FontWeight="SemiBold"/>
+                        
+                        <!-- Row 2 -->
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Node Version:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResNode" Grid.Row="2" Grid.Column="1" FontWeight="SemiBold"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="PHP Version:" Opacity="0.7" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ResPhp" Grid.Row="2" Grid.Column="3" FontWeight="SemiBold"/>
+                    </Grid>
+                    
+                    <Border BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="0,16,0,0">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="Project Health &amp; Missing Dependencies" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="ResNotes" TextWrapping="Wrap" Opacity="0.8"/>
+                            <ItemsControl x:Name="ResMissing">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="sys:String">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                            <FontIcon Glyph="&#xEA39;" FontSize="12" Foreground="{StaticResource BhErrorBrush}"/>
+                                            <TextBlock Text="{Binding}" Foreground="{StaticResource BhErrorBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+            
+            <TextBlock x:Name="ErrorText" Foreground="{StaticResource BhErrorBrush}" Visibility="Collapsed"/>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

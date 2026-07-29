@@ -120,6 +120,18 @@ public static class PhpCgi
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile(version),
             JsonSerializer.Serialize(new PhpRun(version, port, proc.Id)));
+
+        // Watchdog
+        _ = System.Threading.Tasks.Task.Run(async () => {
+            try {
+                await proc.WaitForExitAsync();
+                if (!File.Exists(RunFile(version))) return;
+                await System.Threading.Tasks.Task.Delay(1000);
+                if (!File.Exists(RunFile(version))) return;
+                Start(version);
+            } catch { }
+        });
+
         return true;
     }
 

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.PackageManagerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF0284C7" Offset="0"/>
+                                <GradientStop Color="#FFEAB308" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE7B8;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Package Manager" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Run Composer and NPM commands for your sites."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="12">
+                    <TextBlock Text="Select Site" FontWeight="SemiBold"/>
+                    <Border Style="{StaticResource ListCard}" MinHeight="400">
+                        <ListView x:Name="SiteList" SelectionChanged="SiteList_SelectionChanged">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Grid Padding="14,12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                        <TextBlock Text="{x:Bind}" FontWeight="SemiBold"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="12">
+                    <TextBlock Text="Available Actions" FontWeight="SemiBold"/>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <Button Grid.Column="0" x:Name="ComposerBtn" Content="composer install" Click="ComposerBtn_Click" HorizontalAlignment="Stretch" Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White" IsEnabled="False"/>
+                        <Button Grid.Column="1" x:Name="NpmBtn" Content="npm install" Click="NpmBtn_Click" HorizontalAlignment="Stretch" Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White" IsEnabled="False"/>
+                    </Grid>
+
+                    <TextBlock Text="Output Log" FontWeight="SemiBold" Margin="0,12,0,0"/>
+                    <Border Style="{StaticResource PremiumCard}" MinHeight="300">
+                        <TextBox x:Name="LogViewer" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="13"
+                                 IsReadOnly="True" BorderThickness="0" Background="Transparent" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

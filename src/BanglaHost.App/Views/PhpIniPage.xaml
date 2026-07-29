@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.PhpIniPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="28,24,28,28">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <StackPanel Grid.Row="0" Spacing="18" Margin="0,0,0,16">
+            <!-- ════ Header ════ -->
+            <Grid>
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BhGradientBrush}">
+                            <FontIcon Glyph="&#xE81E;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="PHP INI Manager" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Configure php.ini settings per version. Changes automatically restart the PHP worker."
+                               Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+                </StackPanel>
+            </Grid>
+            
+            <Border Style="{StaticResource PremiumCard}">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="Select PHP Version:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="VersionBox" Width="120" SelectionChanged="VersionBox_SelectionChanged"/>
+                        
+                        <Border Width="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="12,0"/>
+                        
+                        <Button x:Name="PresetDev" Content="Development Preset" Click="PresetDev_Click" CornerRadius="16"/>
+                        <Button x:Name="PresetProd" Content="Production Preset" Click="PresetProd_Click" CornerRadius="16"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        
+        <!-- ════ Editor ════ -->
+        <Border Grid.Row="1" CornerRadius="12" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Quick Settings -->
+                <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Common Settings" FontWeight="SemiBold"/>
+                        <Grid ColumnSpacing="20" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Upload -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="upload_max_filesize" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="UploadMaxBox" Width="140" TextChanged="QuickSetting_Changed"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="post_max_size" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="PostMaxBox" Width="140" TextChanged="QuickSetting_Changed"/>
+                            </StackPanel>
+                            
+                            <!-- Performance -->
+                            <StackPanel Grid.Row="0" Grid.Column="2" Spacing="4">
+                                <TextBlock Text="memory_limit" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="MemoryLimitBox" Width="140" TextChanged="QuickSetting_Changed"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="3" Spacing="4">
+                                <TextBlock Text="max_execution_time" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="MaxExecTimeBox" Width="140" TextChanged="QuickSetting_Changed"/>
+                            </StackPanel>
+                            
+                            <!-- Errors -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="display_errors" FontSize="12" Opacity="0.7"/>
+                                <ComboBox x:Name="DisplayErrorsBox" Width="140" SelectionChanged="QuickSettingCombo_Changed">
+                                    <ComboBoxItem Content="On"/>
+                                    <ComboBoxItem Content="Off"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Raw Editor -->
+                <Grid Grid.Row="1" Padding="0">
+                    <TextBox x:Name="IniEditor" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" BorderThickness="0" Background="Transparent"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"/>
+                </Grid>
+                
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="16" Spacing="10">
+                    <TextBlock x:Name="SaveStatus" VerticalAlignment="Center" Opacity="0.7"/>
+                    <Button x:Name="SaveBtn" Content="Save &amp; Restart" Click="SaveBtn_Click" Style="{StaticResource PillButton}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

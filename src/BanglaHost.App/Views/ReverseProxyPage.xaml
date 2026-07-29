@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.ReverseProxyPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF8B5CF6" Offset="0"/>
+                                <GradientStop Color="#FFD946EF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE8B1;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Reverse Proxy" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Route domains to local development ports (Node.js, Go, Python, etc.)."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Spacing="16">
+                    <Border Style="{StaticResource PremiumCard}">
+                        <StackPanel Spacing="14">
+                            <TextBlock Text="Add Proxy Rule" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Text="Map a local domain to a port running on localhost." FontSize="13" Opacity="0.7" TextWrapping="Wrap"/>
+                            
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Domain (e.g., app.local)" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="DomainBox" PlaceholderText="app.local"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Target Port (e.g., 3000)" FontSize="12" Opacity="0.7"/>
+                                <TextBox x:Name="PortBox" PlaceholderText="3000"/>
+                            </StackPanel>
+
+                            <Button Content="Add Proxy Rule" Click="AddProxy_Click" 
+                                    Style="{StaticResource PillButton}" Background="{StaticResource BhBrandBrush}" Foreground="White"
+                                    HorizontalAlignment="Stretch" Margin="0,8,0,0"/>
+                            
+                            <TextBlock x:Name="StatusLabel" Style="{StaticResource LabelStyle}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="12">
+                    <TextBlock Text="Active Proxy Rules" FontWeight="SemiBold"/>
+                    <Border Style="{StaticResource ListCard}" MinHeight="300">
+                        <ListView x:Name="ProxyList">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="14,12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Domain}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Target}" FontSize="12" Opacity="0.7"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="Remove" Click="RemoveProxy_Click" Tag="{Binding Domain}" CornerRadius="16"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

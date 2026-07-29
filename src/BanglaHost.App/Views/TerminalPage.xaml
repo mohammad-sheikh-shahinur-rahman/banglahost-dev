@@ -1,0 +1,210 @@
+<Page
+    x:Class="BanglaHost.App.Views.TerminalPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Padding="28,24,28,28" Spacing="20" MaxWidth="1180" HorizontalAlignment="Stretch">
+
+            <!-- Hero -->
+            <Border CornerRadius="16" Padding="28,22" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#186366F1" Offset="0"/>
+                        <GradientStop Color="#0C06B6D4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                    <Border Width="44" Height="44" CornerRadius="12" Background="{StaticResource BhGradientBrush}">
+                        <FontIcon Glyph="&#xE756;" Foreground="White" FontSize="22"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Terminal" Style="{StaticResource PageTitleStyle}"/>
+                        <TextBlock Text="Open a native shell in your project directory. PowerShell, CMD, Git Bash, or WSL — one click launches a real console window."
+                                   Style="{StaticResource PageSubtitleStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Working directory card -->
+            <Border Style="{StaticResource PremiumCard}">
+                <StackPanel Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Border Width="4" Height="18" CornerRadius="2" Background="{StaticResource BhGradientVertical}"/>
+                        <TextBlock Text="Working directory" Style="{StaticResource SectionTitleStyle}"/>
+                    </StackPanel>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="WorkingDirBox" Grid.Column="0"
+                                 TextChanged="OnWorkingDirChanged"
+                                 PlaceholderText="C:\BanglaHost\sites"
+                                 VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Click="OnOpenFolder" ToolTipService.ToolTip="Open in File Explorer" CornerRadius="8">
+                            <FontIcon Glyph="&#xE838;" FontSize="14"/>
+                        </Button>
+                        <Button Grid.Column="2" Content="Browse" Click="OnBrowse" CornerRadius="8"/>
+                        <Button Grid.Column="3" Content="Reset" Click="OnReset" CornerRadius="8"/>
+                    </Grid>
+                    <TextBlock Text="The selected shell starts with this folder as its current directory."
+                               Style="{StaticResource LabelStyle}"/>
+                </StackPanel>
+            </Border>
+
+            <InfoBar x:Name="ErrorBar" IsClosable="True" Severity="Error" Title="Failed to launch shell" IsOpen="False"/>
+
+            <!-- Section header -->
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Width="4" Height="18" CornerRadius="2" Background="{StaticResource BhGradientVertical}"/>
+                <TextBlock Text="Available shells" Style="{StaticResource SectionTitleStyle}"/>
+            </StackPanel>
+
+            <!-- PowerShell 5.1 -->
+            <Border Style="{StaticResource PremiumCard}">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#012456">
+                        <TextBlock Text="&gt;_" Foreground="White" FontFamily="Cascadia Mono, Consolas" FontSize="18" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Windows PowerShell" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock Text="Built-in PowerShell 5.1 — always available on Windows" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse x:Name="PowerShellStatus" Width="10" Height="10"/>
+                        <TextBlock x:Name="PowerShellSub" Text="Ready" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <Button Grid.Column="3" x:Name="PowerShellBtn" Content="Open"
+                            Style="{StaticResource PillButton}" Click="OnPowerShell"/>
+                </Grid>
+            </Border>
+
+            <!-- PowerShell 7 -->
+            <Border Style="{StaticResource PremiumCard}">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#2E64FE">
+                        <TextBlock Text="&gt;_" Foreground="White" FontFamily="Cascadia Mono, Consolas" FontSize="18" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="PowerShell 7" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock x:Name="Pwsh7Sub" Text="Cross-platform PowerShell 7+" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse x:Name="Pwsh7Status" Width="10" Height="10"/>
+                        <TextBlock x:Name="Pwsh7StatusText" Text="Ready" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <Button Grid.Column="3" x:Name="Pwsh7Btn" Content="Open"
+                            Style="{StaticResource PillButton}" Click="OnPwsh7"/>
+                </Grid>
+            </Border>
+
+            <!-- Command Prompt -->
+            <Border Style="{StaticResource PremiumCard}">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#0C0C0C">
+                        <TextBlock Text="C:\" Foreground="White" FontFamily="Cascadia Mono, Consolas" FontSize="14" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Command Prompt" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock Text="Classic Windows cmd.exe — batch scripts and legacy tools" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse x:Name="CmdStatus" Width="10" Height="10"/>
+                        <TextBlock Text="Ready" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <Button Grid.Column="3" Content="Open"
+                            Style="{StaticResource PillButton}" Click="OnCmd"/>
+                </Grid>
+            </Border>
+
+            <!-- Git Bash -->
+            <Border Style="{StaticResource PremiumCard}">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#F05033">
+                        <TextBlock Text="git" Foreground="White" FontFamily="Cascadia Mono, Consolas" FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="Git Bash" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock x:Name="GitBashSub" Text="Git for Windows bash — POSIX-style shell" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse x:Name="GitBashStatus" Width="10" Height="10"/>
+                        <TextBlock x:Name="GitBashStatusText" Text="Ready" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <Button Grid.Column="3" x:Name="GitBashBtn" Content="Open"
+                            Style="{StaticResource PillButton}" Click="OnGitBash"/>
+                </Grid>
+            </Border>
+
+            <!-- WSL -->
+            <Border Style="{StaticResource PremiumCard}">
+                <Grid ColumnSpacing="16" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="44" Height="44" CornerRadius="10" Background="#E95420">
+                        <TextBlock Text="$_" Foreground="White" FontFamily="Cascadia Mono, Consolas" FontSize="18" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Text="WSL" Style="{StaticResource CardTitleStyle}"/>
+                        <TextBlock x:Name="WslSub" Text="Windows Subsystem for Linux — default distro" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Ellipse x:Name="WslStatus" Width="10" Height="10"/>
+                        <TextBlock x:Name="WslStatusText" Text="Ready" Style="{StaticResource LabelStyle}"/>
+                    </StackPanel>
+                    <Button Grid.Column="3" x:Name="WslBtn" Content="Open"
+                            Style="{StaticResource PillButton}" Click="OnWsl"/>
+                </Grid>
+            </Border>
+
+            <!-- Tips card -->
+            <Border Style="{StaticResource CompactCard}">
+                <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE946;" FontSize="14" Foreground="{StaticResource BhBrandBrush}"/>
+                        <TextBlock Text="Tips" FontWeight="SemiBold" FontSize="13"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource LabelStyle}" TextWrapping="Wrap"
+                               Text="Each button opens a brand-new console window at the working directory above — the same experience as XAMPP's 'Shell'. Close the window when you are done; the app stays running."/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

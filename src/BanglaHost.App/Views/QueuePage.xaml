@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.QueuePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <StackPanel Padding="28,24,28,28" Spacing="18">
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#FF10B981" Offset="0"/>
+                                <GradientStop Color="#FF34D399" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <FontIcon Glyph="&#xE756;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Queue Manager" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="Monitor and manage Redis queues, Laravel Horizon jobs, and background workers."
+                           Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+            </StackPanel>
+
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource PremiumCard}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Redis Status" FontSize="12" Opacity="0.7"/>
+                        <TextBlock x:Name="RedisStatus" Text="Checking..." FontSize="22" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource PremiumCard}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Active Queues" FontSize="12" Opacity="0.7"/>
+                        <TextBlock x:Name="QueueCountLabel" Text="0" FontSize="22" FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource PremiumCard}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Actions" FontSize="12" Opacity="0.7"/>
+                        <Button x:Name="RefreshBtn" Content="Refresh" Click="RefreshBtn_Click" Style="{StaticResource PillButton}" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <StackPanel Spacing="12">
+                <TextBlock Text="Queue List" FontWeight="SemiBold"/>
+                <Border Style="{StaticResource ListCard}" MinHeight="200">
+                    <ListView x:Name="QueueList">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Grid Padding="14,10" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Bind}" FontWeight="SemiBold" FontFamily="Consolas"/>
+                                    <Button Grid.Column="1" Content="Flush" Click="FlushQueue_Click" Tag="{x:Bind}" CornerRadius="16" Foreground="{StaticResource BhErrorBrush}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="12">
+                <TextBlock Text="Redis Server Info" FontWeight="SemiBold"/>
+                <Border Style="{StaticResource PremiumCard}">
+                    <TextBox x:Name="RedisInfoBox" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" IsReadOnly="True"
+                             Height="200" ScrollViewer.VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="Transparent"/>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
