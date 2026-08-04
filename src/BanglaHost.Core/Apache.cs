@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text;
 
 namespace BanglaHost.Core;
@@ -176,8 +176,7 @@ public static class Apache
         if (Running()) return (true, "apache already running");
 
         var cfg = Config.Load();
-        if (!NetUtils.IsPortAvailable(cfg.HttpPort)) throw new BhException($"Port {cfg.HttpPort} is already in use by another application. Please stop it before starting Apache.");
-        if (cfg.HttpsPort > 0 && !NetUtils.IsPortAvailable(cfg.HttpsPort)) throw new BhException($"Port {cfg.HttpsPort} (HTTPS) is already in use by another application. Please stop it before starting Apache.");
+        if (!NetUtils.IsPortAvailable(Port)) throw new BhException($"Port {Port} is already in use by another application. Please stop it before starting Apache.");
 
         var (tok, tmsg) = Test();
         if (!tok) return (false, "apache config test failed:\n" + tmsg);
