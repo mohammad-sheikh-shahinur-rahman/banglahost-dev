@@ -107,10 +107,19 @@ public static class Services
         return v.StartsWith("php@") ? v : $"php@{v}";
     }
 
-    public static string PhpLabel(string key) => key == "php" ? "default" : key["php@".Length..];
+    public static string PhpLabel(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return "";
+        if (key == "php" || key == "default") return "default";
+        return key.StartsWith("php@") ? key[4..] : key;
+    }
 
-    public static string PhpVersion(string key, Config cfg) =>
-        key == "php" ? cfg.DefaultPhp : key["php@".Length..];
+    public static string PhpVersion(string key, Config cfg)
+    {
+        if (string.IsNullOrEmpty(key)) return "";
+        if (key == "php" || key == "default") return cfg.DefaultPhp;
+        return key.StartsWith("php@") ? key[4..] : key;
+    }
 
     public static bool Installed(string key, Config cfg) => key switch
     {
