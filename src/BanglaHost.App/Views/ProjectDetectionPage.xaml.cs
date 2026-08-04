@@ -18,15 +18,10 @@ public sealed partial class ProjectDetectionPage : Page
 
     private async void BrowseBtn_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FolderPicker();
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-        picker.FileTypeFilter.Add("*");
-
-        var folder = await picker.PickSingleFolderAsync();
-        if (folder != null)
+        var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
+        if (folderPath != null)
         {
-            PathBox.Text = folder.Path;
+            PathBox.Text = folderPath;
             AnalyzeBtn_Click(sender, e);
         }
     }

@@ -108,16 +108,11 @@ public sealed partial class DeployPage : Page
 
     private async void BrowseSource_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FolderPicker();
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-        picker.FileTypeFilter.Add("*");
-
-        var folder = await picker.PickSingleFolderAsync();
-        if (folder != null)
-        {
-            SourceBox.Text = folder.Path;
-        }
+        var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
+            if (folderPath != null)
+            {
+                SourceBox.Text = folderPath;
+            }
     }
 
     private async void DeployBtn_Click(object sender, RoutedEventArgs e)

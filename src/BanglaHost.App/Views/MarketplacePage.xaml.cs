@@ -26,21 +26,16 @@ public sealed partial class MarketplacePage : Page
         if (sender is Button btn && btn.DataContext is MarketApp app)
         {
             // Prompt for target directory
-            var picker = new Windows.Storage.Pickers.FolderPicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            picker.FileTypeFilter.Add("*");
-
-            var folder = await picker.PickSingleFolderAsync();
-            if (folder == null) return;
-
+            var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
+            if (folderPath == null) return;
+            app.InstallDir = folderPath;
             btn.IsEnabled = false;
             btn.Content = "Installing...";
             
             // In a real app, we'd want to show a dialog with logs.
             // For now, fire and forget / show basic result
             var success = await System.Threading.Tasks.Task.Run(() => 
-                BanglaHost.Core.InstallerService.InstallAppAsync(app.Name, folder.Path, msg => { /* log to output window / dialog */ })
+                BanglaHost.Core.InstallerService.InstallAppAsync(app.Name, app.InstallDir, msg => { /* log to output window / dialog */ })
             );
 
             btn.Content = success ? "Installed" : "Failed";

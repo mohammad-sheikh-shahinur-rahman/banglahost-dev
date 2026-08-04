@@ -55,14 +55,10 @@ namespace BanglaHost.App.Views
         {
             try
             {
-                var picker = new FolderPicker();
-                picker.FileTypeFilter.Add("*");
-                var hwnd = WindowNative.GetWindowHandle(App.Window);
-                InitializeWithWindow.Initialize(picker, hwnd);
-                var folder = await picker.PickSingleFolderAsync();
-                if (folder != null)
+                var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
+                if (folderPath != null)
                 {
-                    _workingDir = folder.Path;
+                    _workingDir = folderPath;
                     WorkingDirBox.Text = _workingDir;
                 }
             }
@@ -131,7 +127,7 @@ namespace BanglaHost.App.Views
                 ErrorBar.IsOpen = false;
                 var dir = EnsureWorkingDir();
 
-                // Prefer Windows Terminal (wt.exe) — modern UX, tabs, and it reliably opens a visible window.
+                // Prefer Windows Terminal (wt.exe) â€” modern UX, tabs, and it reliably opens a visible window.
                 var wt = FindWindowsTerminal();
                 if (wt != null)
                 {

@@ -281,7 +281,14 @@ public sealed partial class SitesPage : Page
 
     private static void Launch(string target)
     {
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true }); } catch { }
+        try
+        {
+            if (System.IO.Directory.Exists(target))
+                using (var p = Process.Start("explorer.exe", $"\"{target}\"")) { }
+            else
+                using (var p = Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true })) { }
+        }
+        catch { }
     }
 
     private Task Info(string title, string body)

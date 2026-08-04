@@ -117,7 +117,17 @@ public sealed partial class SiteListControl : UserControl
     // ── helpers ──────────────────────────────────────────────────────────────────
     private new static string Tag(object s) => (s as FrameworkElement)?.Tag as string ?? "";
     private SiteRow? Row(string name) => _all.FirstOrDefault(r => r.Name == name);
-    private static void Launch(string t) { try { using var p = Process.Start(new ProcessStartInfo { FileName = t, UseShellExecute = true }); } catch { } }
+    private static void Launch(string t)
+    {
+        try
+        {
+            if (System.IO.Directory.Exists(t))
+                using (var p = Process.Start("explorer.exe", $"\"{t}\"")) { }
+            else
+                using (var p = Process.Start(new ProcessStartInfo { FileName = t, UseShellExecute = true })) { }
+        }
+        catch { }
+    }
     private Task Info(string title, string body)
     {
         var dlg = new ContentDialog { Title = title, Content = body, CloseButtonText = "OK", XamlRoot = this.XamlRoot };

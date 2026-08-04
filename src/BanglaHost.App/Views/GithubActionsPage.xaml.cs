@@ -16,16 +16,11 @@ public sealed partial class GithubActionsPage : Page
 
     private async void BrowseBtn_Click(object sender, RoutedEventArgs e)
     {
-        var picker = new FolderPicker();
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-        picker.FileTypeFilter.Add("*");
-
-        var folder = await picker.PickSingleFolderAsync();
-        if (folder != null)
-        {
-            ProjectDirBox.Text = folder.Path;
-        }
+        var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
+            if (folderPath != null)
+            {
+                ProjectDirBox.Text = folderPath;
+            }
     }
 
     private async void ScaffoldBtn_Click(object sender, RoutedEventArgs e)

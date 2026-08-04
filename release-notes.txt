@@ -1,0 +1,3 @@
+﻿- Support changing the Data Directory safely across drives.
+- Fix phpMyAdmin launch failure when the app starts on a different drive.
+- Fix UI text encoding issues on the Dashboard and Site List.
