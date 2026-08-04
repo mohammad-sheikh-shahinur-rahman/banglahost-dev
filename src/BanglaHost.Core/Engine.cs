@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace BanglaHost.Core;
 
@@ -672,7 +672,7 @@ public sealed class Engine
     public void Secure(string domain)
     {
         NeedInit();
-        var mkc = Tools.MkcertExe() ?? throw new BhException("mkcert not installed â€” run: banglahost install mkcert");
+        var mkc = Tools.MkcertExe() ?? throw new BhException("mkcert not installed — run: banglahost install mkcert");
         Directory.CreateDirectory(Paths.Certs);
         Hdr($"Provisioning trusted cert for {domain}");
 
