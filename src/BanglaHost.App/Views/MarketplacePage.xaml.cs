@@ -50,6 +50,7 @@ public sealed partial class MarketplacePage : Page
         public string Description { get; set; } = "";
         public string Icon { get; set; } = "\uE719";
         public string Type { get; set; } = "App";
+        public string InstallDir { get; set; } = "";
     }
 }
 
