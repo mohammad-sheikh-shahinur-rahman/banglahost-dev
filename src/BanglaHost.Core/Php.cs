@@ -36,8 +36,14 @@ public static class Php
         {
             var seed = new[] { "php.ini-development", "php.ini-production" }
                 .Select(f => Path.Combine(dir, f)).FirstOrDefault(File.Exists);
-            if (seed is not null) File.Copy(seed, ini);
-            else File.WriteAllText(ini, $"; BanglaHost-created php.ini for {version}\n; Add your directives below.\n");
+            if (seed is not null) 
+            {
+                var text = File.ReadAllText(seed);
+                text = text.Replace("extension_dir = \"ext\"", $"extension_dir = \"{Path.Combine(dir, "ext").Replace('\\', '/')}\"");
+                text += "\n; BanglaHost applied fixes\ncgi.force_redirect=0\ndisplay_errors=Off\n";
+                File.WriteAllText(ini, text);
+            }
+            else File.WriteAllText(ini, $"; BanglaHost-created php.ini for {version}\n; Add your directives below.\n\n; BanglaHost applied fixes\ncgi.force_redirect=0\ndisplay_errors=Off\n");
         }
         return ini;
     }
