@@ -136,7 +136,7 @@ public static class Apache
             </Directory>
             # Point php-cgi at our CGI-safe php.ini (display_errors=Off, cgi.force_redirect=0)
             # so PHP warnings never end up as HTTP headers -> "malformed header from script" 500s.
-            
+            SetEnv PHPRC "{{iniDir}}"
             Action application/x-httpd-php "/__bhphp/php-cgi.exe"
             AddType application/x-httpd-php .php
             ErrorLog "{{home}}/logs/{{name}}-apache-error.log"
