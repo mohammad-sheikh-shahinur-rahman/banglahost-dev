@@ -401,7 +401,7 @@ public sealed class Engine
 </head>
 <body>
   <div class='container'>
-    <h1>ðŸŽ‰ Congratulations!<br>Your website is live now!</h1>
+    <h1>&#127881; Congratulations!<br>Your website is live now!</h1>
     <h3>This default page has been automatically generated.</h3>
     <ul>
       <li>Your site's <code>index.php</code> file is located in the root directory.</li>
