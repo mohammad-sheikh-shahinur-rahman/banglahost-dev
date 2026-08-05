@@ -121,6 +121,25 @@ public sealed partial class DashboardPage : Page
         {
             string[] daemonKeys = { "nginx", "apache", "mysql", "mariadb", "postgresql", "redis", "memcached", "mailpit" };
             var daemons = snap.Services.Where(s => daemonKeys.Contains(s.Key)).ToList();
+            
+            // Engine.Start("all") prefers mariadb if both are AutoStart.
+            // Ignore mysql in toStart count if both are enabled, otherwise the button never changes to Stop All.
+            var mysql = daemons.FirstOrDefault(s => s.Key == "mysql");
+            var mariadb = daemons.FirstOrDefault(s => s.Key == "mariadb");
+            if (mysql?.AutoStart == true && mariadb?.AutoStart == true)
+            {
+                daemons.Remove(mysql);
+            }
+
+            // Similarly, if both apache and nginx are enabled, they will conflict on port 80.
+            // If apache is running, ignore nginx's failed-to-start status for the button state.
+            var apacheSvc = daemons.FirstOrDefault(s => s.Key == "apache");
+            var nginxSvc = daemons.FirstOrDefault(s => s.Key == "nginx");
+            if (apacheSvc?.AutoStart == true && nginxSvc?.AutoStart == true && apacheSvc?.Running == true)
+            {
+                daemons.Remove(nginxSvc);
+            }
+
             var toStart = daemons.Count(s => s.Installed && s.AutoStart && !s.Running);
             var anyRunning = snap.Services.Any(s => s.Running);
             var somethingToStart = toStart > 0 || !anyRunning;
