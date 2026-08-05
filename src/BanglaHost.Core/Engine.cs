@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace BanglaHost.Core;
 
@@ -829,9 +829,9 @@ public sealed class Engine
         var rootPem = string.IsNullOrEmpty(caroot) ? null : Path.Combine(caroot, "rootCA.pem");
         if (rootPem is not null && File.Exists(rootPem) && CaTrusted(rootPem)) return;
 
-        Info("installing mkcert local CA (one-time, needs admin)â€¦");
+        Info("installing mkcert local CA (one-time, needs admin)…");
         if (Elevation.Run("mkcert-install")) Ok("mkcert CA installed (browsers + AV scanners will trust BanglaHost certs)");
-        else Warn("mkcert CA not installed in trust store â€” certs work but show untrusted (curl -k is fine)");
+        else Warn("mkcert CA not installed in trust store — certs work but show untrusted (curl -k is fine)");
     }
 
     /// <summary>True when the given CA pem is present in BOTH the user and machine Root stores.
@@ -908,23 +908,6 @@ public sealed class Engine
         try
         {
             var cfg = Config.Load();
-            // (1) Apache vhosts missing SetEnv PHPRC â€” re-render.
-            var sitesDir = Path.Combine(Paths.Home, "apache", "sites");
-            if (Directory.Exists(sitesDir) && Apache.Available)
-            {
-                foreach (var site in ListSites(cfg).Where(s => s.Server == "apache"))
-                {
-                    var conf = Path.Combine(sitesDir, site.Name + ".conf");
-                    if (!File.Exists(conf)) continue;
-                    if (File.ReadAllText(conf).Contains("SetEnv PHPRC")) continue;
-                    var phpKey = string.IsNullOrEmpty(site.Php) ? cfg.DefaultPhp : "php@" + site.Php;
-                    try { Apache.RenderVhost(site.Name, site.Domain, site.Root, phpKey, cfg); } catch { }
-                }
-                // Ensure the shared php.ini exists (previous installs never wrote it).
-                Apache.RenderMain();
-                Apache.Reload();
-            }
-
             // (2) Mojibake landing page â€” early builds embedded Ã°Å¸Å½â€° instead of a real emoji.
             var moji = "Ã°Å¸Å½â€°";   // U+00F0 U+0178 U+017D U+2030 == cp1252(f0 9f 8e 89)
             foreach (var site in ListSites(cfg))
