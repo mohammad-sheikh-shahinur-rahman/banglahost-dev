@@ -123,13 +123,25 @@ public sealed partial class DashboardPage : Page
             var daemons = snap.Services.Where(s => daemonKeys.Contains(s.Key)).ToList();
             var toStart = daemons.Count(s => s.Installed && s.AutoStart && !s.Running);
             var anyRunning = snap.Services.Any(s => s.Running);
-            var somethingToStart = toStart > 0;
-            // Keep Start always visible+enabled — its gradient background overrides WinUI's
-            // disabled visual so "greyed out" reads as invisible on the card. Start is safe to
-            // click even when everything's up (the engine no-ops installed+running services).
-            StartBtn.IsEnabled = true;
-            SetBtn(StopBtn, anyRunning, !somethingToStart && anyRunning);
-            SetBtn(RestartBtn, anyRunning, false);   // can't restart what isn't running
+            var somethingToStart = toStart > 0 || !anyRunning;
+
+            if (somethingToStart)
+            {
+                StartBtn.Visibility = Visibility.Visible;
+                StopBtn.Visibility = Visibility.Collapsed;
+                RestartBtn.Visibility = Visibility.Collapsed;
+                StartBtn.IsEnabled = true;
+            }
+            else
+            {
+                StartBtn.Visibility = Visibility.Collapsed;
+                StopBtn.Visibility = Visibility.Visible;
+                RestartBtn.Visibility = Visibility.Visible;
+                StopBtn.IsEnabled = true;
+                RestartBtn.IsEnabled = true;
+                SetBtn(StopBtn, true, true); // Accent the Stop button when it's the primary action
+                SetBtn(RestartBtn, true, false);
+            }
         }
 
         // ── websites (delegated to the shared list control: Show + search + actions + paging) ──
