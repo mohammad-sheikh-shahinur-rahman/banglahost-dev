@@ -1,10 +1,10 @@
-namespace BanglaHost.Core;
+﻿namespace BanglaHost.Core;
 
 /// <summary>
-/// Resolves managed binaries from BanglaHost's own portable installs � in two roots:
+/// Resolves managed binaries from BanglaHost's own portable installs — in two roots:
 /// (1) the user's <c>%LOCALAPPDATA%\BanglaHost\bin\</c> (on-demand downloads/updates), and
 /// (2) the bundled <c>&lt;app&gt;\bin\</c> shipped inside the installer. The bundled root
-/// means a fresh install runs with ZERO runtime executable downloads � which keeps
+/// means a fresh install runs with ZERO runtime executable downloads — which keeps
 /// antivirus behavioral scanners from flagging banglahost.exe as a "dropper".
 /// BanglaHost never borrows binaries from Laragon/XAMPP/etc.
 /// </summary>
@@ -18,7 +18,7 @@ public static class Tools
         if (!string.Equals(appBin, Paths.Bin, StringComparison.OrdinalIgnoreCase)) yield return appBin;
     }
 
-    /// <summary>Highest version embedded in a path (e.g. �\nginx-1.31.2\� → 1.31.2), else 0.0 � so the
+    /// <summary>Highest version embedded in a path (e.g. …\nginx-1.31.2\… â†’ 1.31.2), else 0.0 — so the
     /// newest of several coexisting version dirs is preferred when a locked old one can't be removed.</summary>
     private static Version PathVersion(string path)
     {
@@ -29,7 +29,7 @@ public static class Tools
         return best;
     }
 
-    /// <summary>First match for <paramref name="fileName"/> under <c>&lt;root&gt;\&lt;tool&gt;\�</c> across both roots.</summary>
+    /// <summary>First match for <paramref name="fileName"/> under <c>&lt;root&gt;\&lt;tool&gt;\…</c> across both roots.</summary>
     private static string? Find(string tool, string fileName)
     {
         foreach (var root in BinRoots())
@@ -53,7 +53,7 @@ public static class Tools
     public static string? PhpCgiExe(string version) => Find(Path.Combine("php", version), "php-cgi.exe");
 
     public static string? NginxExe() => Find("nginx", "nginx.exe");
-    /// <summary>Installed nginx version parsed from its dir (�\nginx-1.31.2\�), or null.</summary>
+    /// <summary>Installed nginx version parsed from its dir (…\nginx-1.31.2\…), or null.</summary>
     public static string? NginxVersion()
     {
         if (NginxExe() is not { } e) return null;
@@ -64,13 +64,13 @@ public static class Tools
 
     public static string? MkcertExe() => Find("mkcert", "mkcert.exe");
 
-    // MySQL → bin\mysql, MariaDB → bin\mariadb. MysqldExe prefers MariaDB if both are present
+    // MySQL â†’ bin\mysql, MariaDB â†’ bin\mariadb. MysqldExe prefers MariaDB if both are present
     // (only one DB runs on :3306 at a time; each engine keeps its own data dir).
     public static string? MysqldExe()      => Find("mariadb", "mysqld.exe") ?? Find("mysql", "mysqld.exe");
     public static string? MysqldExe(string engine) => engine == "mariadb" ? Find("mariadb", "mysqld.exe") : Find("mysql", "mysqld.exe");
 
     /// <summary>The ACTUAL installed version of a DB engine, parsed from its versioned extract dir
-    /// (�\mariadb\mariadb-12.3.2-winx64\�), or null if not installed. Lets the UI show the real
+    /// (…\mariadb\mariadb-12.3.2-winx64\…), or null if not installed. Lets the UI show the real
     /// version instead of a hardcoded label.</summary>
     public static string? DbVersionFor(string engine)
     {
@@ -86,6 +86,9 @@ public static class Tools
     public static string? MysqlClientFor(string engine) => engine == "mariadb"
         ? (Find("mariadb", "mariadb.exe") ?? Find("mariadb", "mysql.exe") ?? Find("mysql", "mysql.exe"))
         : (Find("mysql", "mysql.exe") ?? Find("mariadb", "mariadb.exe") ?? Find("mariadb", "mysql.exe"));
+    public static string? MysqldumpExe(string engine) => engine == "mariadb"
+        ? (Find("mariadb", "mariadb-dump.exe") ?? Find("mariadb", "mysqldump.exe") ?? Find("mysql", "mysqldump.exe"))
+        : (Find("mysql", "mysqldump.exe") ?? Find("mariadb", "mariadb-dump.exe") ?? Find("mariadb", "mysqldump.exe"));
     public static bool MysqlInstalled   => Find("mysql", "mysqld.exe") is not null;
     public static bool MariadbInstalled => Find("mariadb", "mysqld.exe") is not null;
     public static string? MariadbInstallDbExe() => Find("mariadb", "mariadb-install-db.exe") ?? Find("mariadb", "mysql_install_db.exe");
@@ -211,7 +214,7 @@ public static class Tools
 
     // -- Terminals / VCS / container tooling --------------------------
 
-    // ── Python (portable CPython for Python-app sites) ────────────────────────────
+    // â”€â”€ Python (portable CPython for Python-app sites) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public static string? PythonExe() => Find("python", "python.exe");
     public static bool PythonInstalled => PythonExe() is not null;
     /// <summary>Directory holding the managed python.exe (prepended to a Python app's PATH).</summary>
@@ -260,3 +263,4 @@ public static class Tools
         catch { return null; }
     }
 }
+

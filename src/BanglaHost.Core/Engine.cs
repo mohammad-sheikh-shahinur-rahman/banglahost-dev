@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace BanglaHost.Core;
 
@@ -427,6 +427,11 @@ public sealed class Engine
         if (string.IsNullOrEmpty(server)) server = cfg.DefaultWeb;
         if (server is not ("nginx" or "apache")) throw new BhException("--server must be nginx or apache");
         if (server == "apache" && !Apache.Available) throw new BhException("apache backend needs httpd â€” install Apache from the Services page first");
+        if (string.IsNullOrEmpty(php))
+        {
+            var detected = ProjectDetector.DetectPhpVersion(root);
+            php = string.IsNullOrEmpty(detected) ? cfg.DefaultPhp : detected;
+        }
         var phpKey = Services.PhpKey(php, cfg);
         var version = Services.PhpVersion(phpKey, cfg);
 

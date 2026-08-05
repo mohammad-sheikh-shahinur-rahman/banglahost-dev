@@ -148,6 +148,28 @@ public sealed partial class SiteListControl : UserControl
     private void Open_Click(object s, RoutedEventArgs e)   { if (Row(Tag(s)) is { } r) Launch(r.Url); }
     private void Folder_Click(object s, RoutedEventArgs e) { if (Row(Tag(s)) is { } r && r.Root.Length > 0) Launch(r.Root); }
 
+    private async void Clone_Click(object s, RoutedEventArgs e)
+    {
+        try
+        {
+            var name = Tag(s);
+            var box = new TextBox { PlaceholderText = "new site name (e.g. staging)", Width = 300, CornerRadius = new CornerRadius(8) };
+            var dlg = new ContentDialog
+            {
+                Title = $"Clone '{name}'", Content = box,
+                PrimaryButtonText = "Clone", CloseButtonText = "Cancel",
+                XamlRoot = this.XamlRoot
+            };
+            if (await BanglaHost.App.Services.DialogQueue.ShowAsync(dlg) == ContentDialogResult.Primary)
+            {
+                var newName = box.Text.Trim();
+                if (string.IsNullOrWhiteSpace(newName)) return;
+                await Op(() => BanglaHost.Core.CloneService.CloneSite(name, newName, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s)));
+            }
+        }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+
     /// <summary>Open the site folder in the first code editor we can find (VS Code → Cursor → Sublime →
     /// Notepad++). Falls back to opening the folder in Explorer if none is installed.</summary>
     private async void CodeEditor_Click(object s, RoutedEventArgs e)

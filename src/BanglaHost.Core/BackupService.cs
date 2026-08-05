@@ -171,4 +171,49 @@ public static class BackupService
             if (File.Exists(f)) File.Delete(f);
         }
     }
+
+    public static void DumpDatabase(string dbName, string outputPath, Config cfg)
+    {
+        var engine = DbServer.ActiveEngine() ?? "mysql";
+        var dumpExe = Tools.MysqldumpExe(engine);
+        if (dumpExe == null || !File.Exists(dumpExe)) throw new BhException("mysqldump not found.");
+        var user = "root";
+        var pass = cfg.RootPassword;
+        var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {DbServer.Port} -h 127.0.0.1";
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/c \"\"{dumpExe}\" --opt {auth} {dbName} --result-file=\"{outputPath}\"\"",
+            UseShellExecute = false, CreateNoWindow = true
+        };
+        var p = Process.Start(psi);
+        p?.WaitForExit();
+        if (p?.ExitCode != 0) throw new BhException($"Failed to dump database '{dbName}'.");
+    }
+
+    public static void RestoreDatabase(string dbName, string sqlPath, Config cfg)
+    {
+        var engine = DbServer.ActiveEngine() ?? "mysql";
+        var mysqlExe = Tools.MysqlClientFor(engine);
+        if (mysqlExe == null || !File.Exists(mysqlExe)) throw new BhException("mysql not found.");
+        var user = "root";
+        var pass = cfg.RootPassword;
+        var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {DbServer.Port} -h 127.0.0.1";
+        
+        // Ensure DB exists before importing
+        try { using (var p = Process.Start(new ProcessStartInfo { FileName = mysqlExe, Arguments = $"{auth} -e \"CREATE DATABASE IF NOT EXISTS \\\"{dbName}\\\";\"", UseShellExecute = false, CreateNoWindow = true })) { p?.WaitForExit(); } } catch { }
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/c \"\"{mysqlExe}\" {auth} \"{dbName}\" < \"{sqlPath}\"\"",
+            UseShellExecute = false, CreateNoWindow = true
+        };
+        var pCmd = Process.Start(psi);
+        pCmd?.WaitForExit();
+        if (pCmd?.ExitCode != 0) throw new BhException($"Failed to import database '{dbName}'.");
+    }
 }
+
+

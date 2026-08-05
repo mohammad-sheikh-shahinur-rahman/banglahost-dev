@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace BanglaHost.App.Services;
@@ -97,11 +97,38 @@ public sealed class TrayIcon : IDisposable
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
+    private readonly System.Collections.Generic.Dictionary<int, string> _siteCmdMap = new();
+
     private void ShowMenu()
     {
         var menu = CreatePopupMenu();
         AppendMenu(menu, 0, CMD_OPEN, "Open BanglaHost");
         AppendMenu(menu, 0x800, 0, null);          // MF_SEPARATOR
+        
+        try
+        {
+            var engineHost = BanglaHost.App.Services.EngineHost.Instance;
+            if (engineHost?.Engine != null)
+            {
+                var api = engineHost.Engine.Api();
+                if (api.Sites != null && api.Sites.Count > 0)
+                {
+                    _siteCmdMap.Clear();
+                    var sitesMenu = CreatePopupMenu();
+                    int siteCmdId = 1000;
+                    foreach (var site in api.Sites)
+                    {
+                        AppendMenu(sitesMenu, 0, siteCmdId, site.Domain);
+                        _siteCmdMap[siteCmdId] = (site.Secure ? "https://" : "http://") + site.Domain;
+                        siteCmdId++;
+                    }
+                    AppendMenu(menu, 0x10, sitesMenu, "Sites"); // 0x10 = MF_POPUP
+                    AppendMenu(menu, 0x800, 0, null);
+                }
+            }
+        }
+        catch { }
+
         AppendMenu(menu, 0, CMD_START, "Start all services");
         AppendMenu(menu, 0, CMD_STOP, "Stop all services");
         AppendMenu(menu, 0, CMD_RESTART, "Restart all");
@@ -111,6 +138,13 @@ public sealed class TrayIcon : IDisposable
         SetForegroundWindow(_hwnd);                 // so the menu dismisses on click-away
         var cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.X, pt.Y, 0, _hwnd, IntPtr.Zero);
         DestroyMenu(menu);
+
+        if (cmd >= 1000 && _siteCmdMap.TryGetValue(cmd, out var url) && !string.IsNullOrEmpty(url))
+        {
+            try { using (System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true })) { } } catch { }
+            return;
+        }
+
         switch (cmd)
         {
             case CMD_OPEN:    OpenRequested?.Invoke(); break;
@@ -168,7 +202,7 @@ public sealed class TrayIcon : IDisposable
     private const uint IMAGE_ICON = 1, LR_LOADFROMFILE = 0x0010;
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr LoadImage(IntPtr inst, string name, uint type, int cx, int cy, uint load);
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(IntPtr menu, uint flags, int id, string? item);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(IntPtr menu, uint flags, nint id, string? item);
     [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr menu);
     [DllImport("user32.dll")] private static extern int TrackPopupMenu(IntPtr menu, uint flags, int x, int y, int res, IntPtr hwnd, IntPtr rect);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT pt);

@@ -28,7 +28,8 @@ public sealed partial class SitesPage : Page
         var cfg = Config.Load();
         _sitesRoot = cfg.SitesRoot;
         foreach (var v in BanglaHost.Core.Services.PhpVersions) PhpBox.Items.Add(new ComboBoxItem { Content = v });
-        PhpBox.SelectedIndex = Math.Max(0, Array.IndexOf(BanglaHost.Core.Services.PhpVersions, cfg.DefaultPhp));
+        PhpBox.Items.Insert(0, new ComboBoxItem { Content = "Auto Detect" });
+        PhpBox.SelectedIndex = 0;
         UpdatePathPreview();
     }
 
@@ -62,7 +63,14 @@ public sealed partial class SitesPage : Page
     { Name = s.Name, Domain = s.Domain, Php = s.Php, Root = s.Root, Secure = s.Secure, Enabled = s.Enabled, Server = s.Server };
 
     // ââ add row ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    private string SelectedPhp => (PhpBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+    private string SelectedPhp
+    {
+        get
+        {
+            var val = (PhpBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+            return val.StartsWith("Auto Detect") ? "" : val;
+        }
+    }
     // Read the real server key from Tag (the Content is a descriptive label like "nginx (serves PHP)").
     private string SelectedServer => (ServerBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "nginx";
     private string SelectedType => ((TypeBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "") switch
@@ -205,7 +213,14 @@ public sealed partial class SitesPage : Page
         if (PathRun == null) return;
         var name = NameBox.Text.Trim();
         if (string.IsNullOrEmpty(name)) name = "[site-name]";
-        PathRun.Text = _customRoot ?? System.IO.Path.Combine(_sitesRoot, name);
+        var root = _customRoot ?? System.IO.Path.Combine(_sitesRoot, name);
+        PathRun.Text = root;
+        
+        if (PhpBox != null && PhpBox.Items.Count > 0 && PhpBox.Items[0] is ComboBoxItem autoItem && autoItem.Content?.ToString()?.StartsWith("Auto Detect") == true)
+        {
+            var detected = BanglaHost.Core.ProjectDetector.DetectPhpVersion(root);
+            autoItem.Content = $"Auto Detect ({detected})";
+        }
     }
 
     /// <summary>Node-app setup sheet (revealed when Type = Node app), then create + show the result.</summary>
@@ -314,6 +329,59 @@ public sealed partial class SitesPage : Page
         Glyph = g, FontSize = 13, Foreground = new SolidColorBrush(c),
         VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 0, 0),
     };
+
+    private async void QuickApp_Click(object s, RoutedEventArgs e)
+    {
+        try
+        {
+            var box = new TextBox { PlaceholderText = "new project name (e.g. my-app)", Width = 300, CornerRadius = new CornerRadius(8) };
+            var typeBox = new ComboBox { Width = 300, SelectedIndex = 0, CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 10, 0, 0) };
+            typeBox.Items.Add(new ComboBoxItem { Content = "WordPress" });
+            typeBox.Items.Add(new ComboBoxItem { Content = "Laravel" });
+            
+            var panel = new StackPanel { Spacing = 5 };
+            panel.Children.Add(new TextBlock { Text = "Project Name", FontWeight = FontWeights.SemiBold });
+            panel.Children.Add(box);
+            panel.Children.Add(new TextBlock { Text = "Framework", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 0) });
+            panel.Children.Add(typeBox);
+
+            var dlg = new ContentDialog
+            {
+                Title = "Quick App Setup", Content = panel,
+                PrimaryButtonText = "Create", CloseButtonText = "Cancel",
+                XamlRoot = this.XamlRoot
+            };
+
+            if (await BanglaHost.App.Services.DialogQueue.ShowAsync(dlg) == ContentDialogResult.Primary)
+            {
+                var name = box.Text.Trim();
+                if (string.IsNullOrWhiteSpace(name)) return;
+                var isWp = typeBox.SelectedIndex == 0;
+                
+                Busy.IsActive = true;
+                string? err = await EngineHost.Instance.Run(() => 
+                {
+                    if (isWp) BanglaHost.Core.ScaffoldService.CreateWordPress(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
+                    else BanglaHost.Core.ScaffoldService.CreateLaravel(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
+                });
+                Busy.IsActive = false;
+                
+                Refresh();
+                
+                if (err is not null)
+                {
+                    var errDlg = new ContentDialog { Title = "Failed", Content = err, CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                    await BanglaHost.App.Services.DialogQueue.ShowAsync(errDlg);
+                }
+                else
+                {
+                    var successDlg = new ContentDialog { Title = "Success", Content = $"{name} created successfully!", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                    await BanglaHost.App.Services.DialogQueue.ShowAsync(successDlg);
+                }
+            }
+        }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
 
     private async Task ShowResult(string name, bool ok, string output)
     {

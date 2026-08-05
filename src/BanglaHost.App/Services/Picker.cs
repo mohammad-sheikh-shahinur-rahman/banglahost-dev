@@ -37,7 +37,7 @@ public static class Picker
     private interface IFileOpenDialog
     {
         [PreserveSig] int Show([In] IntPtr parent);
-        void SetFileTypes([In] uint cFileTypes, [In] IntPtr rgFilterSpec);
+        void SetFileTypes([In] uint cFileTypes, [In] COMDLG_FILTERSPEC[] rgFilterSpec);
         void SetFileTypeIndex([In] uint iFileType);
         void GetFileTypeIndex(out uint piFileType);
         void Advise([In] IntPtr pfde, out uint pdwCookie);
@@ -79,9 +79,78 @@ public static class Picker
         SIGDN_FILESYSPATH = 0x80058000
     }
 
+    public static Task<string?> SaveFileAsync(string defaultExtension, string filterName, string filterExt)
+    {
+        if (BanglaHost.App.App.Window is null) return Task.FromResult<string?>(null);
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(BanglaHost.App.App.Window);
+        try
+        {
+            var dialog = (IFileSaveDialog)new FileSaveDialog();
+            dialog.SetOptions(FOS.FOS_FORCEFILESYSTEM | FOS.FOS_OVERWRITEPROMPT);
+            dialog.SetDefaultExtension(defaultExtension);
+            
+            var filters = new COMDLG_FILTERSPEC[] { new COMDLG_FILTERSPEC { pszName = filterName, pszSpec = filterExt } };
+            dialog.SetFileTypes(1, filters);
+
+            if (dialog.Show(hwnd) == 0)
+            {
+                dialog.GetResult(out var item);
+                item.GetDisplayName(SIGDN.SIGDN_FILESYSPATH, out var path);
+                return Task.FromResult<string?>(path);
+            }
+        }
+        catch { }
+        return Task.FromResult<string?>(null);
+    }
+
+    public static Task<string?> OpenFileAsync(string filterName, string filterExt)
+    {
+        if (BanglaHost.App.App.Window is null) return Task.FromResult<string?>(null);
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(BanglaHost.App.App.Window);
+        try
+        {
+            var dialog = (IFileOpenDialog)new FileOpenDialog();
+            dialog.SetOptions(FOS.FOS_FORCEFILESYSTEM | FOS.FOS_FILEMUSTEXIST);
+            
+            var filters = new COMDLG_FILTERSPEC[] { new COMDLG_FILTERSPEC { pszName = filterName, pszSpec = filterExt } };
+            dialog.SetFileTypes(1, filters);
+
+            if (dialog.Show(hwnd) == 0)
+            {
+                dialog.GetResult(out var item);
+                item.GetDisplayName(SIGDN.SIGDN_FILESYSPATH, out var path);
+                return Task.FromResult<string?>(path);
+            }
+        }
+        catch { }
+        return Task.FromResult<string?>(null);
+    }
+
+    [ComImport, Guid("C0B4E2F3-BA21-4773-8DBA-335EC946EB8B")]
+    private class FileSaveDialog { }
+
+    [ComImport, Guid("84bccd23-5fde-4cdb-aea4-af64b83d78ab"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IFileSaveDialog : IFileOpenDialog
+    {
+        void SetSaveAsItem([In] IShellItem psi);
+        void SetProperties([In] IntPtr pStore);
+        void SetCollectedProperties([In] IntPtr pList, [In] int fAppendDefault);
+        void GetProperties(out IntPtr ppStore);
+        void ApplyProperties([In] IShellItem psi, [In] IntPtr pStore, [In] ref IntPtr hwnd, [In] IntPtr pSink);
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct COMDLG_FILTERSPEC
+    {
+        [MarshalAs(UnmanagedType.LPWStr)] public string pszName;
+        [MarshalAs(UnmanagedType.LPWStr)] public string pszSpec;
+    }
+
     [Flags]
     private enum FOS : uint
     {
+        FOS_OVERWRITEPROMPT = 0x00000002,
+        FOS_FILEMUSTEXIST = 0x00001000,
         FOS_PICKFOLDERS = 0x00000020,
         FOS_FORCEFILESYSTEM = 0x00000040
     }

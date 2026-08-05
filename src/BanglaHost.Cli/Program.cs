@@ -40,6 +40,20 @@ try
                         type:   f.GetValueOrDefault("type", "others"));
                     break;
                 }
+                case "clone":
+                {
+                    CloneService.CloneSite(Arg(rest, 1), Arg(rest, 2), Config.Load(), engine, Console.WriteLine);
+                    break;
+                }
+                case "create":
+                {
+                    var type = Arg(rest, 1).ToLower();
+                    var name = Arg(rest, 2);
+                    if (type == "wordpress" || type == "wp") ScaffoldService.CreateWordPress(name, Config.Load(), engine, Console.WriteLine);
+                    else if (type == "laravel") ScaffoldService.CreateLaravel(name, Config.Load(), engine, Console.WriteLine);
+                    else throw new BhException("Usage: banglahost site create <wordpress|laravel> <name>");
+                    break;
+                }
                 case "rm" or "remove":
                 {
                     var purge = rest.Any(a => a is "--purge" or "--delete-files" or "--all");

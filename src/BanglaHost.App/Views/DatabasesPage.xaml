@@ -82,6 +82,8 @@
                                 </Border>
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                                     <Button Content="Password…" Tag="{x:Bind Name}" Click="DbPassword_Click" Visibility="{x:Bind MysqlVis}" CornerRadius="16"/>
+                                    <Button Content="Export" Tag="{x:Bind Name}" Click="Export_Click" CornerRadius="16" Visibility="{x:Bind MysqlVis}"/>
+                                    <Button Content="Import" Tag="{x:Bind Name}" Click="Import_Click" CornerRadius="16" Visibility="{x:Bind MysqlVis}"/>
                                     <Button Content="Drop" Tag="{x:Bind Key}" Click="Drop_Click" CornerRadius="16"/>
                                 </StackPanel>
                             </Grid>

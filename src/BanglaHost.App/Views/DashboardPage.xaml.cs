@@ -139,7 +139,7 @@ public sealed partial class DashboardPage : Page
                 RestartBtn.Visibility = Visibility.Visible;
                 StopBtn.IsEnabled = true;
                 RestartBtn.IsEnabled = true;
-                SetBtn(StopBtn, true, true); // Accent the Stop button when it's the primary action
+                SetBtn(StopBtn, true, true);
                 SetBtn(RestartBtn, true, false);
             }
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -205,6 +205,48 @@ public sealed partial class DatabasesPage : Page
         NameBox.Text = ""; PassBox.Text = "";
     } catch (OperationCanceledException) { }
     catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+
+    private async void Export_Click(object s, RoutedEventArgs e)
+    {
+        try
+        {
+            if ((s as Button)?.Tag is not string key) return;
+            var name = key; // In DatabasesPage.xaml, Tag is bound to Name, not Key for Export/Import
+            var path = await BanglaHost.App.Services.Picker.SaveFileAsync("sql", "SQL File", "*.sql");
+            if (string.IsNullOrEmpty(path)) return;
+            
+            await Op(() => BanglaHost.Core.BackupService.DumpDatabase(name, path, BanglaHost.Core.Config.Load()));
+            var successDlg = new ContentDialog { Title = "Export Success", Content = $"Database '{name}' exported successfully.", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+            await BanglaHost.App.Services.DialogQueue.ShowAsync(successDlg);
+        } catch (OperationCanceledException) { }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+
+    private async void Import_Click(object s, RoutedEventArgs e)
+    {
+        try
+        {
+            if ((s as Button)?.Tag is not string key) return;
+            var name = key; // Tag is bound to Name
+            var path = await BanglaHost.App.Services.Picker.OpenFileAsync("SQL File", "*.sql");
+            if (string.IsNullOrEmpty(path)) return;
+            
+            var confirmDlg = new ContentDialog
+            {
+                Title = "Import database", Content = $"This will import data into '{name}' from the selected file. This may overwrite existing data. Continue?",
+                PrimaryButtonText = "Import", CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary, XamlRoot = this.XamlRoot,
+            };
+            
+            if (await BanglaHost.App.Services.DialogQueue.ShowAsync(confirmDlg) == ContentDialogResult.Primary)
+            {
+                await Op(() => BanglaHost.Core.BackupService.RestoreDatabase(name, path, BanglaHost.Core.Config.Load()));
+                var successDlg = new ContentDialog { Title = "Import Success", Content = $"Database '{name}' imported successfully.", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+                await BanglaHost.App.Services.DialogQueue.ShowAsync(successDlg);
+            }
+        } catch (OperationCanceledException) { }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void Drop_Click(object s, RoutedEventArgs e)

@@ -13,18 +13,27 @@
         </Grid.RowDefinitions>
 
         <!-- ════ Header ════ -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="12">
-            <Border Width="36" Height="36" CornerRadius="10">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
-                        <GradientStop Color="#FF3B82F6" Offset="0"/>
-                        <GradientStop Color="#FF06B6D4" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <FontIcon Glyph="&#xE774;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-            </Border>
-            <TextBlock Text="Sites" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
-        </StackPanel>
+        <Grid Grid.Row="0">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Border Width="36" Height="36" CornerRadius="10">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                            <GradientStop Color="#FF3B82F6" Offset="0"/>
+                            <GradientStop Color="#FF06B6D4" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <FontIcon Glyph="&#xE774;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Sites" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+            </StackPanel>
+            
+            <Button HorizontalAlignment="Right" VerticalAlignment="Center" Click="QuickApp_Click" CornerRadius="8" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                    <TextBlock Text="Quick App (WP/Laravel)"/>
+                </StackPanel>
+            </Button>
+        </Grid>
 
         <!-- ════ Add site form ════ -->
         <!-- Two rows so the "Add site" button is always visible even on narrow windows (the old single

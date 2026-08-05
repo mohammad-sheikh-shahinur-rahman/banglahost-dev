@@ -47,8 +47,7 @@ public static class ProjectDetector
             framework = "Laravel";
             lang = "PHP";
             pkg = "Composer";
-            var composer = File.ReadAllText(Path.Combine(path, "composer.json"));
-            if (composer.Contains("php")) phpVer = "From composer.json"; // Simplification
+            phpVer = DetectPhpVersion(path);
             if (files.Contains(".env"))
             {
                 var env = File.ReadAllText(Path.Combine(path, ".env"));
@@ -63,12 +62,14 @@ public static class ProjectDetector
             lang = "PHP";
             pkg = "None";
             db = "MySQL";
+            phpVer = DetectPhpVersion(path);
         }
         else if (files.Contains("symfony.lock"))
         {
             framework = "Symfony";
             lang = "PHP";
             pkg = "Composer";
+            phpVer = DetectPhpVersion(path);
         }
         else if (files.Contains("requirements.txt") && files.Contains("manage.py"))
         {
@@ -124,6 +125,7 @@ public static class ProjectDetector
         {
             framework = "Custom PHP";
             lang = "PHP";
+            phpVer = DetectPhpVersion(path);
         }
         else if (files.Contains("index.html"))
         {
@@ -146,5 +148,54 @@ public static class ProjectDetector
         }
 
         return new ProjectInfo(framework, lang, pkg, db, nodeVer, phpVer, missing.ToArray(), Math.Max(0, score), string.Join(" ", notes));
+    }
+
+    public static string DetectPhpVersion(string path)
+    {
+        var defaultVer = Config.Load().DefaultPhp;
+        try
+        {
+            var composerFile = Path.Combine(path, "composer.json");
+            if (File.Exists(composerFile))
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(composerFile));
+                if (doc.RootElement.TryGetProperty("require", out var req) && req.TryGetProperty("php", out var php))
+                {
+                    var c = php.GetString() ?? "";
+                    var m = System.Text.RegularExpressions.Regex.Match(c, @"(7\.\d|8\.\d)");
+                    if (m.Success)
+                    {
+                        var reqVer = m.Groups[1].Value;
+                        var installed = Directory.GetDirectories(Path.Combine(Paths.Bin, "php"))
+                                                 .Select(Path.GetFileName)
+                                                 .Where(v => v != null && v.StartsWith(reqVer[0].ToString()))
+                                                 .OrderByDescending(v => v)
+                                                 .ToList();
+                        
+                        var exactMatch = installed.FirstOrDefault(v => v == reqVer);
+                        if (exactMatch != null) return exactMatch;
+                        
+                        var compatible = installed.FirstOrDefault(v => string.Compare(v, reqVer) >= 0);
+                        if (compatible != null) return compatible;
+                    }
+                }
+            }
+            
+            var wp = Path.Combine(path, "wp-includes", "version.php");
+            if (File.Exists(wp))
+            {
+                var installed = Directory.GetDirectories(Path.Combine(Paths.Bin, "php"))
+                                         .Select(Path.GetFileName)
+                                         .Where(v => v != null && v.StartsWith("8."))
+                                         .OrderBy(v => v)
+                                         .ToList();
+                if (installed.Contains("8.1")) return "8.1";
+                if (installed.Contains("8.2")) return "8.2";
+                if (installed.Contains("8.3")) return "8.3";
+                return installed.FirstOrDefault() ?? defaultVer;
+            }
+        }
+        catch { }
+        return defaultVer;
     }
 }
