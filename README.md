@@ -32,6 +32,13 @@ Isolated, pre-configured database instances that run only when you need them.
 - **NoSQL:** MongoDB, Redis.
 - **Embedded:** SQLite (Pre-optimized).
 
+### 🪄 Automation & Productivity (New!)
+- **Auto PHP Detection:** Instantly detects the correct PHP version for your WordPress or Laravel projects from their manifest files.
+- **Site Cloning:** 1-click staging environments! Clone files, databases, and automatically update `.env` or `wp-config.php` URLs.
+- **Quick App Setup:** Scaffold new WordPress or Laravel projects instantly without touching a terminal.
+- **Quick DB Backup/Restore:** 1-click import/export `.sql` dumps for MySQL and MariaDB directly from the dashboard.
+- **System Tray Dashboard:** Access your running sites and logs instantly from the Windows taskbar.
+
 ### 🛠️ Developer Power Tools
 - **Mailpit:** Catch and debug outgoing emails locally.
 - **AI Assistant:** Integrated **Ollama** support to run local LLMs (Llama 3, Mistral) for coding help.
