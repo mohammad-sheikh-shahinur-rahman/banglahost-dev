@@ -3,8 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows" alt="Platform">
   <img src="https://img.shields.io/badge/Built%20With-.NET%208-512bd4?style=for-the-badge&logo=.net" alt="Built With .NET">
-  <img src="https://img.shields.io/badge/UI-WinUI%203-0078d4?style=for-the-badge&logo=windows" alt="WinUI 3">
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/UI-Amazing%20WinUI%203-FF1493?style=for-the-badge&logo=windows" alt="Amazing UI">
 </p>
 
 ---
@@ -13,7 +12,7 @@
 
 **BanglaHost** is a modern, high-performance local development environment built specifically for Windows developers. It eliminates the hassle of configuring complex runtimes and databases, providing a **one-click experience** for PHP, Python, Node.js, and more.
 
-Built with the cutting-edge **.NET 8** and **WinUI 3 (Windows App SDK)**, it offers a native, fluid interface that feels right at home on Windows 10 and 11.
+Built with the cutting-edge **.NET 8** and **WinUI 3 (Windows App SDK)**, it features an **Amazing UI** that offers a stunningly beautiful, native, and fluid interface that feels right at home on Windows 10 and 11.
 
 ---
 
@@ -100,10 +99,6 @@ Complete guides, API references, and troubleshooting can be found at:
 [![ResearchGate](https://img.shields.io/badge/ResearchGate-Mohammad--Sheikh--Shahinur--Rahman-00CCBB?style=flat-square&logo=researchgate)](https://www.researchgate.net/profile/Mohammad-Sheikh-Shahinur-Rahman)
 
 ---
-
-## 📄 License
-
-This project is licensed under the **MIT License**. You are free to use, modify, and distribute it. See the [LICENSE](license.html) file for full details.
 
 ---
 
