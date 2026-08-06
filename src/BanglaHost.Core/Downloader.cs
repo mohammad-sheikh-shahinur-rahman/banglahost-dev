@@ -241,12 +241,15 @@ public static class Downloader
             foreach (var ext in new[] { "curl", "mbstring", "openssl", "mysqli", "pdo_mysql", "gd", "fileinfo", "zip", "intl", "exif" })
                 text = text.Replace($";extension={ext}", $"extension={ext}");
 
-            // Show and log ALL errors (phase 5)
+            // Setup error logging but disable display_errors (crucial for CGI otherwise 500 errors happen)
             text = text.Replace("error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT", "error_reporting = E_ALL");
-            text = text.Replace("display_errors = Off", "display_errors = On");
-            text = text.Replace("display_startup_errors = Off", "display_startup_errors = On");
+            text = text.Replace("display_errors = On", "display_errors = Off"); // sometimes On in dev
+            text = text.Replace("display_startup_errors = On", "display_startup_errors = Off");
             text = text.Replace(";log_errors = On", "log_errors = On");
-
+            
+            // Required for php-cgi to run under Apache mod_cgi
+            text = text.Replace(";cgi.force_redirect = 1", "cgi.force_redirect = 0");
+            
             var logPath = Path.Combine(Paths.Logs, $"php-{version}-error.log").Replace("\\", "/");
             text += $"\nerror_log = \"{logPath}\"\n";
 

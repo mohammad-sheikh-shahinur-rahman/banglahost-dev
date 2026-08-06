@@ -49,7 +49,7 @@ public sealed class TrayIcon : IDisposable
         };
         RegisterClass(ref wc);
         _hwnd = CreateWindowEx(0, _className, "BanglaHostTray", 0, 0, 0, 0, 0,
-                               HWND_MESSAGE, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
+                               IntPtr.Zero, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
 
         var data = NewData(tooltip);
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
@@ -137,6 +137,7 @@ public sealed class TrayIcon : IDisposable
         GetCursorPos(out var pt);
         SetForegroundWindow(_hwnd);                 // so the menu dismisses on click-away
         var cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.X, pt.Y, 0, _hwnd, IntPtr.Zero);
+        PostMessage(_hwnd, 0, IntPtr.Zero, IntPtr.Zero); // force task switch so it doesn't double-trigger
         DestroyMenu(menu);
 
         if (cmd >= 1000 && _siteCmdMap.TryGetValue(cmd, out var url) && !string.IsNullOrEmpty(url))
@@ -207,6 +208,7 @@ public sealed class TrayIcon : IDisposable
     [DllImport("user32.dll")] private static extern int TrackPopupMenu(IntPtr menu, uint flags, int x, int y, int res, IntPtr hwnd, IntPtr rect);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT pt);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr w, IntPtr l);
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool Shell_NotifyIcon(uint msg, ref NOTIFYICONDATA data);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string? name);
 }
