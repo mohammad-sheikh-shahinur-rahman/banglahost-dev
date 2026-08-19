@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.ProfilerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:BanglaHost.Core">
+    
+    <Grid Padding="28,24,28,28" RowSpacing="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BhGradientBrush}">
+                    <FontIcon Glyph="&#xE9D9;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Performance Profiler" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="Analyze Xdebug cachegrind profiles to find memory leaks and slow functions."
+                       Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+            <Button Content="Refresh Profiles" Click="Refresh_Click" Style="{StaticResource AccentButtonStyle}"/>
+            <Button Content="Clear All Profiles" Click="Clear_Click" />
+            <ComboBox x:Name="ProfileBox" Width="250" PlaceholderText="Select a profile file" SelectionChanged="ProfileBox_SelectionChanged"/>
+        </StackPanel>
+
+        <Border Grid.Row="2" Style="{StaticResource PremiumCard}">
+            <ListView x:Name="FuncList">
+                <ListView.Header>
+                    <Grid Padding="12,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="300"/>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Function Name" FontWeight="SemiBold" Grid.Column="0"/>
+                        <TextBlock Text="Cost (Time)" FontWeight="SemiBold" Grid.Column="1"/>
+                        <TextBlock Text="File" FontWeight="SemiBold" Grid.Column="2"/>
+                    </Grid>
+                </ListView.Header>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="core:ProfileFunction">
+                        <Grid Padding="0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="300"/>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" Grid.Column="0" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Name}"/>
+                            <TextBlock Text="{x:Bind Cost}" Grid.Column="1"/>
+                            <TextBlock Text="{x:Bind File}" Grid.Column="2" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind File}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+    </Grid>
+</Page>

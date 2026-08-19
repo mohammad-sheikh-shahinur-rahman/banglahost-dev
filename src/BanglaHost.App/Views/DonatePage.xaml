@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.DonatePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="40" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel Spacing="24" MaxWidth="600" HorizontalAlignment="Center" VerticalAlignment="Center">
+            
+            <FontIcon Glyph="&#xE8A1;" FontSize="64" Foreground="#FFE11D48" HorizontalAlignment="Center"/>
+            
+            <TextBlock Text="Support BanglaHost" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center"/>
+            <TextBlock Text="BanglaHost is a free and open-source project. If you find it useful and it saves your time, consider buying me a coffee to support its continuous development." 
+                       TextWrapping="Wrap" TextAlignment="Center" FontSize="16" Opacity="0.8" Margin="0,0,0,10"/>
+            
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" 
+                    BorderThickness="1" CornerRadius="12" Padding="32">
+                <StackPanel Spacing="16">
+                    <!-- bKash Logo / Text -->
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                        <Border Background="#FFE91E63" CornerRadius="8" Padding="12,8">
+                            <TextBlock Text="bKash" Foreground="White" FontWeight="Bold" FontSize="20"/>
+                        </Border>
+                        <TextBlock Text="Send Money" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold"/>
+                    </StackPanel>
+                    
+                    <TextBlock Text="01959678229" FontSize="42" FontWeight="Bold" Foreground="#FFE91E63" HorizontalAlignment="Center" Margin="0,10,0,10" IsTextSelectionEnabled="True"/>
+                    
+                    <TextBlock Text="Personal Account" HorizontalAlignment="Center" Opacity="0.6"/>
+                    
+                    <Button Content="Copy Number" Click="Copy_Click" HorizontalAlignment="Center" Style="{StaticResource AccentButtonStyle}" Padding="24,10" CornerRadius="20" Margin="0,10,0,0">
+                        <Button.ContentTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="16"/>
+                                    <TextBlock Text="Copy Number"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                </StackPanel>
+            </Border>
+            
+            <TextBlock Text="Thank you for your love and support! ??" HorizontalAlignment="Center" Opacity="0.6" Margin="0,20,0,0"/>
+        </StackPanel>
+    </Grid>
+</Page>

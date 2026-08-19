@@ -122,4 +122,43 @@ public static class ScaffoldService
         engine.SiteAdd(siteName, phpVer, Path.Combine(root, "public"), cfg.DefaultWeb);
         log($"[Scaffold] Laravel '{siteName}' is ready!");
     }
+
+    public static void CreateReact(string siteName, Config cfg, Engine engine, Action<string> log)
+    {
+        var root = Path.Combine(cfg.SitesRoot, siteName);
+        if (Directory.Exists(root)) throw new BhException($"Directory {root} already exists.");
+
+        var nodeBin = Tools.NodeBinDir();
+        var npm = nodeBin != null ? Path.Combine(nodeBin, "npm.cmd") : null;
+        if (npm == null || !File.Exists(npm)) throw new BhException("Node.js/NPM is required to install React. Please install Node.js from the Services page.");
+
+        log($"[Scaffold] Running npm create vite@latest {siteName} -- --template react ...");
+        
+        var psi = new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/c \"\"{npm}\" create vite@latest \"{siteName}\" --yes -- --template react\"",
+            WorkingDirectory = cfg.SitesRoot,
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true
+        };
+        var p = Process.Start(psi);
+        p?.WaitForExit();
+        if (p?.ExitCode != 0) throw new BhException($"Vite failed: {p?.StandardError.ReadToEnd()}");
+
+        log($"[Scaffold] Installing React dependencies (npm install)...");
+        var psi2 = new ProcessStartInfo
+        {
+            FileName = "cmd.exe",
+            Arguments = $"/c \"\"{npm}\" install\"",
+            WorkingDirectory = root,
+            UseShellExecute = false, CreateNoWindow = true
+        };
+        var p2 = Process.Start(psi2);
+        p2?.WaitForExit();
+
+        log($"[Scaffold] Note: React apps are typically run with 'npm run dev' or built for static hosting. You can start it from the Terminal.");
+        engine.SiteAdd(siteName, cfg.DefaultPhp, root, cfg.DefaultWeb);
+        log($"[Scaffold] React '{siteName}' is ready!");
+    }
 }

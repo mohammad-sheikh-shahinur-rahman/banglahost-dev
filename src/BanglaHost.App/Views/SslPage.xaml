@@ -24,13 +24,8 @@
                            Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
             </StackPanel>
 
-            <Grid ColumnSpacing="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Spacing="16">
+            <StackPanel Spacing="24">
+                <StackPanel Spacing="16">
                     <Border Style="{StaticResource PremiumCard}">
                         <StackPanel Spacing="14">
                             <TextBlock Text="Generate New Certificate" Style="{StaticResource CardTitleStyle}"/>
@@ -71,7 +66,7 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Spacing="12">
+                <StackPanel Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="Installed Certificates" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         <Button Click="Refresh_Click" CornerRadius="16" Padding="4,2">
@@ -101,7 +96,7 @@
                         </ListView>
                     </Border>
                 </StackPanel>
-            </Grid>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

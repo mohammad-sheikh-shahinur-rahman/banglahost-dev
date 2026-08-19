@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.ContactSupportPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="40">
+        <StackPanel Spacing="32" MaxWidth="800">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Help &amp; Support" FontSize="36" FontWeight="Bold"/>
+                <TextBlock Text="We're here to help! Choose the best way to get in touch or contribute to the project." 
+                           FontSize="16" Opacity="0.7"/>
+            </StackPanel>
+
+            <StackPanel Spacing="24">
+                
+                <!-- Email Support -->
+                <Button Click="Email_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Border Grid.Column="0" Width="64" Height="64" CornerRadius="32" Background="#10000000" Margin="0,0,24,0">
+                                <FontIcon Glyph="&#xE715;" FontSize="28" Foreground="{ThemeResource SystemAccentColor}"/>
+                            </Border>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="Contact Support (Email)" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Send an email directly to the developer for private inquiries or business support." Opacity="0.7" TextWrapping="Wrap"/>
+                                <TextBlock Text="shahinalam3546@gmail.com" Foreground="{ThemeResource SystemAccentColor}" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            
+                            <FontIcon Grid.Column="2" Glyph="&#xE72A;" FontSize="16" Opacity="0.5" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </Button>
+
+                <!-- Report a Bug -->
+                <Button Click="Community_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Border Grid.Column="0" Width="64" Height="64" CornerRadius="32" Background="#10EF4444" Margin="0,0,24,0">
+                                <FontIcon Glyph="&#xEBE8;" FontSize="28" Foreground="#FFEF4444"/>
+                            </Border>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="Report a Bug" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Found a glitch or an issue? Post it in our community group so we can fix it in the next update." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            
+                            <FontIcon Grid.Column="2" Glyph="&#xE72A;" FontSize="16" Opacity="0.5" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </Button>
+
+                <!-- Request Feature -->
+                <Button Click="Community_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Border Grid.Column="0" Width="64" Height="64" CornerRadius="32" Background="#1010B981" Margin="0,0,24,0">
+                                <FontIcon Glyph="&#xEB41;" FontSize="28" Foreground="#FF10B981"/>
+                            </Border>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                                <TextBlock Text="Request a Feature" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Have an idea to make BanglaHost even better? Share your feature request with the community." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            
+                            <FontIcon Grid.Column="2" Glyph="&#xE72A;" FontSize="16" Opacity="0.5" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </Button>
+
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

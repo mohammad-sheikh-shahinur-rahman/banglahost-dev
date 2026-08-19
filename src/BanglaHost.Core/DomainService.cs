@@ -13,14 +13,14 @@ public record HostEntry(string IpAddress, string Domain, bool IsActive);
 public static class DomainService
 {
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
-    private static readonly string HostsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "drivers\\etc\\hosts");
+
 
     public static List<HostEntry> GetHostsEntries()
     {
         var list = new List<HostEntry>();
-        if (!File.Exists(HostsFilePath)) return list;
+        if (!File.Exists(Paths.HostsFile)) return list;
 
-        var lines = File.ReadAllLines(HostsFilePath);
+        var lines = File.ReadAllLines(Paths.HostsFile);
         foreach (var line in lines)
         {
             var l = line.Trim();
@@ -48,32 +48,8 @@ public static class DomainService
 
     public static async Task<bool> UpdateHostEntryAsync(string ip, string domain, bool add)
     {
-        // This requires elevation. We use the BanglaHost.Elevate helper.
-        var exe = Path.Combine(AppContext.BaseDirectory, "BanglaHost.Elevate.exe");
-        if (!File.Exists(exe)) throw new Exception("Elevate helper not found.");
-
-        var action = add ? "add" : "remove";
-        var args = $"hosts {action} {domain} {ip}";
-
-        var psi = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = exe,
-            Arguments = args,
-            UseShellExecute = true,
-            Verb = "runas",
-            WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
-        };
-
-        try
-        {
-            using var p = System.Diagnostics.Process.Start(psi);
-            if (p != null) await p.WaitForExitAsync();
-            return p?.ExitCode == 0;
-        }
-        catch
-        {
-            return false; // User denied UAC or failed
-        }
+        var action = add ? "hosts-add" : "hosts-remove";
+        return await Task.Run(() => Elevation.Run(action, domain, ip));
     }
 
     public static async Task<string> CheckDnsResolutionAsync(string domain)

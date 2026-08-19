@@ -21,12 +21,20 @@ public static class NetUtils
             if (tcpListeners.Any(endpoint => endpoint.Port == port))
                 isAvailable = false;
             
-            // Check active TCP connections
+            // Check active TCP connections (ignore non-blocking states like TIME_WAIT)
             if (isAvailable)
             {
                 var tcpConnections = ipGlobalProperties.GetActiveTcpConnections();
-                if (tcpConnections.Any(conn => conn.LocalEndPoint.Port == port))
+                if (tcpConnections.Any(conn => conn.LocalEndPoint.Port == port && 
+                    conn.State != TcpState.TimeWait && 
+                    conn.State != TcpState.CloseWait && 
+                    conn.State != TcpState.Closed && 
+                    conn.State != TcpState.FinWait1 &&
+                    conn.State != TcpState.FinWait2 &&
+                    conn.State != TcpState.Closing))
+                {
                     isAvailable = false;
+                }
             }
         }
         catch { }

@@ -194,9 +194,19 @@ public sealed partial class SiteListControl : UserControl
     private void Terminal_Click(object s, RoutedEventArgs e)
     {
         if (Row(Tag(s)) is not { } r || r.Root.Length == 0) return;
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{r.Root}\"", UseShellExecute = true }); return; } catch { }
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = $"-NoExit -Command \"Set-Location -LiteralPath '{r.Root.Replace("'", "''")}'\"", UseShellExecute = true }); return; } catch { }
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/K cd /d \"{r.Root}\"", UseShellExecute = true }); } catch { }
+
+        var paths = new System.Collections.Generic.List<string> { Paths.Bin };
+        
+        if (Tools.NodeBinDir() is { } nodeDir) paths.Add(nodeDir);
+        if (Tools.PhpExe(r.Php) is { } phpExe) paths.Add(System.IO.Path.GetDirectoryName(phpExe)!);
+        if (Tools.MysqlClientExe() is { } mysqlExe) paths.Add(System.IO.Path.GetDirectoryName(mysqlExe)!);
+
+        var pathAdd = string.Join(";", paths) + ";";
+        var psCommand = $"$env:PATH='{pathAdd}' + $env:PATH; Set-Location -LiteralPath '{r.Root.Replace("'", "''")}'";
+        
+        try { using var p = Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{r.Root}\" powershell.exe -NoExit -Command \"{psCommand}\"", UseShellExecute = true }); return; } catch { }
+        try { using var p = Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = $"-NoExit -Command \"{psCommand}\"", UseShellExecute = true }); return; } catch { }
+        try { using var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/K \"set PATH={pathAdd}%PATH% && cd /d \"{r.Root}\"\"", UseShellExecute = true }); } catch { }
     }
 
     private static string Env(string v) => Environment.GetEnvironmentVariable(v) ?? "";
@@ -234,6 +244,99 @@ public sealed partial class SiteListControl : UserControl
     {
         var p = System.IO.Path.Combine(Paths.Logs, $"{Tag(s)}-error.log");
         if (System.IO.File.Exists(p)) Launch(p);
+    }
+
+    private async void Tools_Click(object s, RoutedEventArgs e)
+    {
+        var name = Tag(s);
+        if (Row(name) is not { } r) return;
+        var root = r.Root;
+        if (root.EndsWith("\\public") || root.EndsWith("/public")) root = System.IO.Path.GetDirectoryName(root);
+        if (string.IsNullOrEmpty(root) || !System.IO.Directory.Exists(root)) return;
+
+        bool isWp = System.IO.File.Exists(System.IO.Path.Combine(root, "wp-config.php"));
+        bool isLaravel = System.IO.File.Exists(System.IO.Path.Combine(root, "artisan"));
+
+        if (!isWp && !isLaravel)
+        {
+            var msg = new ContentDialog { Title = "Tools Unavailable", Content = "No WordPress (wp-config.php) or Laravel (artisan) detected in this site's root.", CloseButtonText = "OK", XamlRoot = this.XamlRoot };
+            await BanglaHost.App.Services.DialogQueue.ShowAsync(msg);
+            return;
+        }
+
+        var panel = new StackPanel { Spacing = 10 };
+        var outputBox = new TextBox { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Height = 200, Margin = new Thickness(0, 10, 0, 0), FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") };
+        
+        async Task RunCmd(string title, string fileName, string args)
+        {
+            outputBox.Text = $"Running {title}...\n";
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo { FileName = fileName, Arguments = args, WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                var p = System.Diagnostics.Process.Start(psi);
+                if (p == null) return;
+                await p.WaitForExitAsync();
+                outputBox.Text += await p.StandardOutput.ReadToEndAsync();
+                outputBox.Text += await p.StandardError.ReadToEndAsync();
+            }
+            catch (Exception ex) { outputBox.Text += $"\nError: {ex.Message}"; }
+        }
+
+        if (isWp)
+        {
+            var php = Tools.PhpExe(BanglaHost.Core.Config.Load().DefaultPhp);
+            var wpCli = System.IO.Path.Combine(Paths.Bin, "wp-cli.phar");
+            
+            async Task EnsureWpCli()
+            {
+                if (!System.IO.File.Exists(wpCli))
+                {
+                    outputBox.Text = "Downloading WP-CLI...\n";
+                    var psi = new System.Diagnostics.ProcessStartInfo { FileName = "curl.exe", Arguments = $"-sL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o \"{wpCli}\"", UseShellExecute = false, CreateNoWindow = true };
+                    using var p = System.Diagnostics.Process.Start(psi);
+                    await p!.WaitForExitAsync();
+                    outputBox.Text += "WP-CLI downloaded.\n\n";
+                }
+            }
+
+            var btn1 = new Button { Content = "Clear Cache (wp cache flush)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn1.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Cache Flush", php!, $"\"{wpCli}\" cache flush"); };
+            
+            var btn2 = new Button { Content = "Update Plugins (wp plugin update --all)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn2.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Plugin Update", php!, $"\"{wpCli}\" plugin update --all"); };
+            
+            var btn3 = new Button { Content = "Search & Replace (interactive)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn3.Click += async (_, _) => { outputBox.Text = "For Search & Replace, please open a terminal using the context menu."; await System.Threading.Tasks.Task.CompletedTask; };
+
+            panel.Children.Add(btn1); panel.Children.Add(btn2); panel.Children.Add(btn3);
+        }
+        else if (isLaravel)
+        {
+            var php = Tools.PhpExe(BanglaHost.Core.Config.Load().DefaultPhp);
+            var artisan = System.IO.Path.Combine(root, "artisan");
+
+            var btn1 = new Button { Content = "Optimize Clear (artisan optimize:clear)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn1.Click += async (_, _) => { await RunCmd("Optimize Clear", php!, $"\"{artisan}\" optimize:clear"); };
+            
+            var btn2 = new Button { Content = "Run Migrations (artisan migrate)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn2.Click += async (_, _) => { await RunCmd("Migrate", php!, $"\"{artisan}\" migrate --force"); };
+            
+            var btn3 = new Button { Content = "Cache Routes (artisan route:cache)", HorizontalAlignment = HorizontalAlignment.Stretch };
+            btn3.Click += async (_, _) => { await RunCmd("Route Cache", php!, $"\"{artisan}\" route:cache"); };
+
+            panel.Children.Add(btn1); panel.Children.Add(btn2); panel.Children.Add(btn3);
+        }
+
+        panel.Children.Add(outputBox);
+
+        var dlg = new ContentDialog
+        {
+            Title = $"{name} - CLI Tools",
+            Content = panel,
+            CloseButtonText = "Close",
+            XamlRoot = this.XamlRoot
+        };
+        await BanglaHost.App.Services.DialogQueue.ShowAsync(dlg);
     }
 
     private async void Toggle_Click(object s, RoutedEventArgs e)

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -199,6 +199,7 @@ public static class PhpCgi
 
     public static void Stop(string version)
     {
+        try { File.Delete(RunFile(version)); } catch { }
         var info = Info(version);
         if (info is not null)
         {
@@ -226,6 +227,5 @@ public static class PhpCgi
                 finally { p.Dispose(); }
             }
         }
-        try { File.Delete(RunFile(version)); } catch { }
     }
 }

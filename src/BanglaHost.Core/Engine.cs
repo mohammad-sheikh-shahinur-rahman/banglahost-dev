@@ -390,23 +390,46 @@ public sealed class Engine
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <title>Welcome to Your New Site!</title>
 <style>
-  body { font-family:Arial, sans-serif; margin:0; padding:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background-color:#f8f8f8; }
-  .container { max-width:600px; width:90%; padding:32px 20px; background:#fff; border-radius:10px; box-shadow:0 4px 8px rgba(0,0,0,.1); text-align:center; }
-  h1 { color:#20a53a; margin:0 0 6px; }
-  h3 { color:#555; font-weight:normal; }
-  ul { list-style-type:none; padding:0; }
-  ul li { margin:10px 0; font-size:16px; color:#444; }
-  code { background:#eef7ee; color:#20a53a; padding:1px 6px; border-radius:4px; }
+  :root { --primary: #10b981; --bg: #f3f4f6; --card: #ffffff; --text: #1f2937; --text-muted: #6b7280; --border: #e5e7eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --primary: #34d399; --bg: #111827; --card: #1f2937; --text: #f9fafb; --text-muted: #9ca3af; --border: #374151; }
+  }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--bg); color: var(--text); }
+  .container { max-width: 600px; width: 90%; padding: 40px; background: var(--card); border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); text-align: center; border: 1px solid var(--border); }
+  .icon-wrapper { display: inline-flex; justify-content: center; align-items: center; width: 80px; height: 80px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: var(--primary); margin-bottom: 24px; }
+  .icon-wrapper svg { width: 40px; height: 40px; }
+  h1 { margin: 0 0 12px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  p { margin: 0 0 24px; color: var(--text-muted); font-size: 16px; line-height: 1.5; }
+  .steps { background: var(--bg); border-radius: 12px; padding: 20px; text-align: left; }
+  .step { display: flex; align-items: flex-start; margin-bottom: 16px; }
+  .step:last-child { margin-bottom: 0; }
+  .step-icon { color: var(--primary); margin-right: 12px; margin-top: 2px; }
+  .step-icon svg { width: 20px; height: 20px; }
+  .step-text { color: var(--text); font-size: 15px; }
+  code { background: var(--card); color: var(--primary); padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 14px; border: 1px solid var(--border); }
+  .footer { margin-top: 32px; font-size: 14px; color: var(--text-muted); }
+  .footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
+  .footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
   <div class='container'>
-    <h1>&#127881; Congratulations!<br>Your website is live now!</h1>
-    <h3>This default page has been automatically generated.</h3>
-    <ul>
-      <li>Your site's <code>index.php</code> file is located in the root directory.</li>
-      <li>Feel free to modify, delete, or replace this page to customize your site!</li>
-    </ul>
+    <div class='icon-wrapper'>
+      <svg fill='none' stroke='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg>
+    </div>
+    <h1>Your website is live!</h1>
+    <p>BanglaHost has successfully generated this default page for your new local website.</p>
+    
+    <div class='steps'>
+      <div class='step'>
+        <div class='step-icon'><svg fill='none' stroke='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'></path></svg></div>
+        <div class='step-text'>This page is served from <code>index.php</code> in your site's root directory.</div>
+      </div>
+      <div class='step'>
+        <div class='step-icon'><svg fill='none' stroke='currentColor' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'></path></svg></div>
+        <div class='step-text'>You can safely delete or replace it with your own project files to start developing.</div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
@@ -445,7 +468,8 @@ public sealed class Engine
         if (server == "apache")
         {
             Apache.RenderVhost(name, domain, root, phpKey, cfg);
-            var (aok, amsg) = Apache.Start(); if (aok) Ok(amsg); else Warn(amsg);
+            if (Apache.Running()) Apache.Reload();
+            else { var (aok, amsg) = Apache.Start(); if (aok) Ok(amsg); else Warn(amsg); }
             NginxConfig.RenderApacheFront(name, domain, root, phpKey, Apache.Port, cfg);
         }
         else NginxConfig.RenderPhpVhost(name, domain, root, phpKey, cfg);

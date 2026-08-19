@@ -16,7 +16,8 @@ try
     {
         case "hosts-add":
             if (args.Length < 2 || !Hosts.IsValidDomain(args[1])) return 1;
-            return Hosts.Add(args[1]) ? 0 : 1;
+            var ip = args.Length > 2 ? args[2] : "127.0.0.1";
+            return Hosts.Add(args[1], ip) ? 0 : 1;
 
         case "hosts-remove":
             if (args.Length < 2 || !Hosts.IsValidDomain(args[1])) return 1;

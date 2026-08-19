@@ -49,6 +49,9 @@
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE912;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Sites"     Tag="sites" Icon="World"/>
+                <muxc:NavigationViewItem Content="SQL Studio" Tag="db_explorer">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8D5;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Databases" Tag="databases">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEE94;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
@@ -72,6 +75,9 @@
                 <muxc:NavigationViewItem Content="Python"    Tag="python">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE943;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
+                <muxc:NavigationViewItem Content="PHP Versions" Tag="php_manager">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE898;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="PHP Extensions" Tag="php_ext">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9F5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
@@ -93,11 +99,23 @@
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE895;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Scheduler" Tag="scheduler" Icon="Calendar"/>
+                <muxc:NavigationViewItem Content="Background Workers" Tag="cron_manager">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE946;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
+                <muxc:NavigationViewItem Content="NPM Scripts" Tag="npm_runner">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
+                <muxc:NavigationViewItem Content="Email Inbox" Tag="email_inbox">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE715;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Security"  Tag="security">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEA18;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
                 <muxc:NavigationViewItemHeader Content="Monitoring"/>
+                <muxc:NavigationViewItem Content="Logs"      Tag="logs">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Network"   Tag="network">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE968;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
@@ -133,6 +151,9 @@
                 </muxc:NavigationViewItem>
 
                 <muxc:NavigationViewItemHeader Content="Diagnostics"/>
+                <muxc:NavigationViewItem Content="Profiler" Tag="profiler">
+                    <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;"/></muxc:NavigationViewItem.Icon>
+                </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="Site Health" Tag="site_health">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9A1;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>

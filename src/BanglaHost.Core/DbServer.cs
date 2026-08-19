@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -146,7 +146,7 @@ public static class DbServer
         var exe = Tools.MariadbUpgradeExe();
         if (exe is null) return "";
         var pw = Config.Load().RootPassword;
-        var (code, outp) = RunWait(exe, $"-u root -h 127.0.0.1 -P {Port} {(pw.Length > 0 ? $"-p{pw} " : "")}");
+        var (code, outp) = RunWait(exe, $"-u root -h 127.0.0.1 -P {Port} {(pw.Length > 0 ? $"-p\"{pw}\" " : "")}");
         return code == 0 ? "system tables upgraded (mariadb-upgrade)"
                          : $"mariadb-upgrade reported: {outp.Trim()}";
     }
@@ -156,8 +156,9 @@ public static class DbServer
         var admin = Tools.MysqlClientExe() is { } cli ? Path.Combine(Path.GetDirectoryName(cli)!, "mysqladmin.exe") : null;
         if (admin is not null && File.Exists(admin) && Running())
         {
+            try { BackupService.AutoBackupAllDatabasesAsync().GetAwaiter().GetResult(); } catch { }
             var pw = Config.Load().RootPassword;
-            RunWait(admin, $"-u root {(pw.Length > 0 ? $"-p{pw} " : "")}-h 127.0.0.1 -P {Port} --connect-timeout=5 shutdown");
+            RunWait(admin, $"-u root {(pw.Length > 0 ? $"-p\"{pw}\" " : "")}-h 127.0.0.1 -P {Port} --connect-timeout=5 shutdown");
         }
         try
         {

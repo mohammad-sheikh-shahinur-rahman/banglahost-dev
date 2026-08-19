@@ -29,7 +29,13 @@ public sealed partial class LogsPage : Page
         "[warn]",  "WARNING", "FATAL", "Segmentation fault",
     };
 
-    public LogsPage() => InitializeComponent();
+    private FileWatcherService? _watcher;
+
+    public LogsPage()
+    {
+        InitializeComponent();
+        this.Unloaded += (s, e) => { _watcher?.Dispose(); _watcher = null; };
+    }
 
     protected override void OnNavigatedTo(NavigationEventArgs e) => Reload();
 
@@ -51,6 +57,10 @@ public sealed partial class LogsPage : Page
     private async void Load()
     {
         if (FilePicker.SelectedItem is not string name) return;
+        
+        _watcher?.Dispose();
+        _watcher = null;
+
         LogText.Inlines.Clear();
         var errorsOnly = ErrorsOnly?.IsChecked == true;
         var q = FilterBox?.Text ?? "";
@@ -103,6 +113,46 @@ public sealed partial class LogsPage : Page
         }
         foreach (var r in runs) LogText.Inlines.Add(r);
         Scroll.ChangeView(null, Scroll.ScrollableHeight, null);
+
+        // Start Live Streaming if watching a specific file
+        if (name != AllErrors)
+        {
+            var logPath = Path.Combine(Paths.Logs, name);
+            if (File.Exists(logPath))
+            {
+                _watcher = new FileWatcherService(logPath);
+                _watcher.OnNewLine += (newText) =>
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        // Safely check UI state before updating
+                        if (LogText == null || FilePicker.SelectedItem as string != name) return;
+
+                        var newLines = FilterLines(newText, ErrorsOnly?.IsChecked == true, FilterBox?.Text ?? "");
+                        if (newLines.Count == 0) return;
+
+                        foreach (var (text, level) in newLines)
+                        {
+                            var brush = level switch
+                            {
+                                LogLevel.Error   => errorBrush,
+                                LogLevel.Warning => warnBrush,
+                                _                => neutralBrush,
+                            };
+                            LogText.Inlines.Add(new Run { Text = text + "\n", Foreground = brush });
+                        }
+                        
+                        // Keep text block from growing infinitely in live view
+                        if (LogText.Inlines.Count > 2000)
+                        {
+                            while (LogText.Inlines.Count > 1500) LogText.Inlines.RemoveAt(0);
+                        }
+
+                        Scroll.ChangeView(null, Scroll.ScrollableHeight, null);
+                    });
+                };
+            }
+        }
     }
 
     /// <summary>Filter lines from a single log file. Runs on a background thread — returns

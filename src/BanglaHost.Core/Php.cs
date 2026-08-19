@@ -273,6 +273,17 @@ public static class Php
             touched = true;
         }
         if (!touched && enable) lines.Add($"{directive}={name}");
+
+        if (name == "xdebug")
+        {
+            lines.RemoveAll(l => l.TrimStart().StartsWith("xdebug.", StringComparison.OrdinalIgnoreCase) || l.TrimStart().StartsWith(";xdebug.", StringComparison.OrdinalIgnoreCase));
+            if (enable)
+            {
+                lines.Add("xdebug.mode=profile");
+                lines.Add($"xdebug.output_dir=\"{Paths.Tmp.Replace('\\', '/')}\"");
+                lines.Add("xdebug.profiler_output_name=\"cachegrind.out.%p\"");
+            }
+        }
         File.WriteAllLines(ini, lines);
         IniReload(version);
     }

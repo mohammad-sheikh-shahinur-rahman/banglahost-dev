@@ -43,15 +43,15 @@ public static class Hosts
         catch { return false; }
     }
 
-    /// <summary>Append "127.0.0.1 domain # BanglaHost" if absent. Returns false (no-throw) when not elevated.</summary>
-    public static bool Add(string domain)
+    /// <summary>Append "<paramref name="ip"/> <paramref name="domain"/> # BanglaHost" if absent. Returns false (no-throw) when not elevated.</summary>
+    public static bool Add(string domain, string ip = "127.0.0.1")
     {
         if (!IsValidDomain(domain)) return false;   // never write unvalidated input to the hosts file
         if (Has(domain)) return true;
         if (!IsElevated()) return false;
         try
         {
-            File.AppendAllText(Paths.HostsFile, $"127.0.0.1 {domain} {Tag}{Environment.NewLine}");
+            File.AppendAllText(Paths.HostsFile, $"{ip} {domain} {Tag}{Environment.NewLine}");
             return true;
         }
         catch (UnauthorizedAccessException) { throw new BhException("Failed to modify hosts file. Your antivirus may be blocking it, or the file is read-only."); }

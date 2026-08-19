@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="BanglaHost.App.Views.CronManagerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BanglaHost.App.Views"
+    xmlns:core="using:BanglaHost.Core">
+
+    <Grid Padding="28,24,28,28" RowSpacing="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BhGradientBrush}">
+                    <FontIcon Glyph="&#xE946;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Cron &amp; Queue Manager" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="Manage background schedule:work and queue:work for your local Laravel projects."
+                       Style="{StaticResource PageSubtitleStyle}" Margin="48,0,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Style="{StaticResource PremiumCard}">
+            <ListView x:Name="SiteList" SelectionMode="None">
+                <ListView.Header>
+                    <Grid Padding="12,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="200"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Site Name" FontWeight="SemiBold" Grid.Column="0"/>
+                        <TextBlock Text="Root Directory" FontWeight="SemiBold" Grid.Column="1"/>
+                        <TextBlock Text="Queue Worker" FontWeight="SemiBold" Grid.Column="2" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Schedule Worker" FontWeight="SemiBold" Grid.Column="3" HorizontalAlignment="Center"/>
+                    </Grid>
+                </ListView.Header>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="local:CronSiteModel">
+                        <Grid Padding="0,12" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" Grid.Column="0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{x:Bind Target}" Grid.Column="1" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                            <ToggleSwitch Grid.Column="2" HorizontalAlignment="Center" Tag="{x:Bind Name}" Toggled="Queue_Toggled" IsOn="{Binding Path=IsQueueOn, Mode=TwoWay}"/>
+                            <ToggleSwitch Grid.Column="3" HorizontalAlignment="Center" Tag="{x:Bind Name}" Toggled="Schedule_Toggled" IsOn="{Binding Path=IsScheduleOn, Mode=TwoWay}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+    </Grid>
+</Page>

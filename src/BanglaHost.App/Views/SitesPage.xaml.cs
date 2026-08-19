@@ -338,6 +338,7 @@ public sealed partial class SitesPage : Page
             var typeBox = new ComboBox { Width = 300, SelectedIndex = 0, CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 10, 0, 0) };
             typeBox.Items.Add(new ComboBoxItem { Content = "WordPress" });
             typeBox.Items.Add(new ComboBoxItem { Content = "Laravel" });
+            typeBox.Items.Add(new ComboBoxItem { Content = "React (Vite)" });
             
             var panel = new StackPanel { Spacing = 5 };
             panel.Children.Add(new TextBlock { Text = "Project Name", FontWeight = FontWeights.SemiBold });
@@ -356,13 +357,14 @@ public sealed partial class SitesPage : Page
             {
                 var name = box.Text.Trim();
                 if (string.IsNullOrWhiteSpace(name)) return;
-                var isWp = typeBox.SelectedIndex == 0;
+                var selection = typeBox.SelectedIndex;
                 
                 Busy.IsActive = true;
                 string? err = await EngineHost.Instance.Run(() => 
                 {
-                    if (isWp) BanglaHost.Core.ScaffoldService.CreateWordPress(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
-                    else BanglaHost.Core.ScaffoldService.CreateLaravel(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
+                    if (selection == 0) BanglaHost.Core.ScaffoldService.CreateWordPress(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
+                    else if (selection == 1) BanglaHost.Core.ScaffoldService.CreateLaravel(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
+                    else if (selection == 2) BanglaHost.Core.ScaffoldService.CreateReact(name, BanglaHost.Core.Config.Load(), EngineHost.Instance.Engine, s => EngineHost.Instance.Append(s));
                 });
                 Busy.IsActive = false;
                 

@@ -24,7 +24,12 @@ public sealed partial class DomainsPage : Page
 
     private void LoadHosts()
     {
-        HostsList.ItemsSource = DomainService.GetHostsEntries().Where(x => x.Domain.Contains("test") || x.Domain.Contains("localhost")).ToList();
+        var cfg = Config.Load();
+        var tld = $".{cfg.Tld}";
+        HostsList.ItemsSource = DomainService.GetHostsEntries()
+            .Where(x => x.Domain.EndsWith(tld, StringComparison.OrdinalIgnoreCase) ||
+                        x.Domain.Contains("localhost"))
+            .ToList();
     }
 
     private async void AddHostBtn_Click(object sender, RoutedEventArgs e)

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace BanglaHost.Core;
 
@@ -35,11 +35,9 @@ public static class Elevation
                 FileName = helper,
                 UseShellExecute = true,   // required for the "runas" verb (UAC)
                 Verb = "runas",
-                CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
+                Arguments = string.Join(" ", new[] { verb }.Concat(args).Select(a => $"\"{a.Replace("\"", "\\\"")}\""))
             };
-            psi.ArgumentList.Add(verb);
-            foreach (var a in args) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
             if (p is null) return false;
             p.WaitForExit();

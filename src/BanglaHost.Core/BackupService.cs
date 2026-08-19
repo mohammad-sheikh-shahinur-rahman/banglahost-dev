@@ -192,6 +192,40 @@ public static class BackupService
         if (p?.ExitCode != 0) throw new BhException($"Failed to dump database '{dbName}'.");
     }
 
+    public static async Task AutoBackupAllDatabasesAsync()
+    {
+        try
+        {
+            var cfg = Config.Load();
+            var backupDir = Path.Combine(Paths.Home, "db_backups");
+            Directory.CreateDirectory(backupDir);
+
+            var today = DateTime.Now.ToString("yyyy-MM-dd");
+            var todayDir = Path.Combine(backupDir, today);
+            Directory.CreateDirectory(todayDir);
+
+            var res = await DbExplorer.QueryMysqlAsync("SHOW DATABASES;");
+            var dbs = res.Rows.Select(r => r[0])
+                .Where(db => db != "information_schema" && db != "performance_schema" && db != "sys" && db != "mysql")
+                .ToList();
+
+            foreach (var db in dbs)
+            {
+                try { DumpDatabase(db, Path.Combine(todayDir, $"{db}.sql"), cfg); } catch { }
+            }
+
+            var limit = DateTime.Now.AddDays(-5);
+            foreach (var dir in Directory.GetDirectories(backupDir))
+            {
+                if (DateTime.TryParseExact(Path.GetFileName(dir), "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out var date))
+                {
+                    if (date < limit) try { Directory.Delete(dir, true); } catch { }
+                }
+            }
+        }
+        catch { }
+    }
+
     public static void RestoreDatabase(string dbName, string sqlPath, Config cfg)
     {
         var engine = DbServer.ActiveEngine() ?? "mysql";

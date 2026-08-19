@@ -27,7 +27,7 @@ namespace BanglaHost.Core
             try
             {
                 var p = Process.GetProcessById(pid);
-                if (!p.HasExited) p.Kill();
+                if (!p.HasExited) p.Kill(true);
             }
             catch (ArgumentException)
             {

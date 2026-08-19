@@ -1,4 +1,4 @@
-﻿using BanglaHost.App.Services;
+using BanglaHost.App.Services;
 using BanglaHost.App.Views;
 using BanglaHost.Core;
 using Microsoft.UI.Xaml;
@@ -278,47 +278,20 @@ public sealed partial class MainWindow : Window
         if (args.IsSettingsSelected) { ContentFrame.Navigate(typeof(SettingsPage)); return; }
         if (args.SelectedItemContainer is NavigationViewItem { Tag: string tag })
         {
-            if (tag.StartsWith("support_"))
-            {
-                // Unselect so we stay on the current page while launching external apps
-                sender.SelectedItem = null;
-                if (tag == "support_donate")
-                {
-                    if (this.Content == null || this.Content.XamlRoot == null) return;
-                    var dialog = new ContentDialog
-                    {
-                        Title = "Donate via bKash",
-                        Content = "Please use the 'Send Money' option in your bKash app to send your donation to the following number:\n\n01959678229\n\nThank you for supporting BanglaHost!",
-                        CloseButtonText = "Close",
-                        XamlRoot = this.Content.XamlRoot
-                    };
-                    try { await dialog.ShowAsync(); } catch { }
-                    return;
-                }
-
-                string? uri = tag switch
-                {
-                    "support_email" => "mailto:shahinalam3546@gmail.com",
-                    "support_bug" => "https://www.facebook.com/groups/1716873689636854",
-                    "support_feature" => "https://www.facebook.com/groups/1716873689636854",
-                    "support_docs" => "https://www.facebook.com/groups/1716873689636854",
-                    _ => null
-                };
-                if (uri != null)
-                {
-                    try { await Windows.System.Launcher.LaunchUriAsync(new Uri(uri)); } catch { }
-                }
-                return;
-            }
-
             try
             {
                 ContentFrame.Navigate(tag switch
                 {
+                    "support_donate"  => typeof(DonatePage),
+                    "support_docs"    => typeof(DocumentationPage),
+                    "support_email"   => typeof(ContactSupportPage),
+                    "support_bug"     => typeof(ContactSupportPage),
+                    "support_feature" => typeof(ContactSupportPage),
                     "about"      => typeof(AboutPage),
                 "dashboard"  => typeof(DashboardPage),
                 "services"   => typeof(ServicesPage),
                 "sites"      => typeof(SitesPage),
+                "db_explorer"=> typeof(DatabaseExplorerPage),
                 "databases"  => typeof(DatabasesPage),
                 "terminal"   => typeof(TerminalPage),
                 "files"      => typeof(FilesPage),
@@ -326,6 +299,7 @@ public sealed partial class MainWindow : Window
                 "explorer"   => typeof(ExplorerPage),
                 "node"       => typeof(NodePage),
                 "python"     => typeof(PythonPage),
+                "php_manager"=> typeof(PhpManagerPage),
                 "php_ext"    => typeof(PhpExtensionsPage),
                 "php_ini"    => typeof(PhpIniPage),
                 "ssl"        => typeof(SslPage),
@@ -342,11 +316,15 @@ public sealed partial class MainWindow : Window
                 "github_actions" => typeof(GithubActionsPage),
                 "cf_tunnel"  => typeof(CloudflareTunnelPage),
                 "site_health" => typeof(SiteHealthPage),
+                "profiler"   => typeof(ProfilerPage),
                 "file_watcher" => typeof(FileWatcherPage),
                 "reverse_proxy" => typeof(ReverseProxyPage),
                 "env_manager" => typeof(EnvManagerPage),
                 "package_manager" => typeof(PackageManagerPage),
                 "scheduler"  => typeof(SchedulerPage),
+                "cron_manager" => typeof(CronManagerPage),
+                "npm_runner" => typeof(NpmRunnerPage),
+                "email_inbox" => typeof(EmailInboxPage),
                 "ai"         => typeof(AiAssistantPage),
                 "marketplace" => typeof(MarketplacePage),
                 "blueprint"  => typeof(BlueprintPage),
