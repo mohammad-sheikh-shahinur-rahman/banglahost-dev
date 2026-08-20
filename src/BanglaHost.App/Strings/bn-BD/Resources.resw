@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="NavDashboard.Content" xml:space="preserve"><value>ড্যাশবোর্ড</value></data>
+  <data name="NavServices.Content" xml:space="preserve"><value>সার্ভিসেস</value></data>
+  <data name="NavSites.Content" xml:space="preserve"><value>সাইটসমূহ</value></data>
+  <data name="NavSQLStudio.Content" xml:space="preserve"><value>এসকিউএল স্টুডিও</value></data>
+  <data name="NavDatabases.Content" xml:space="preserve"><value>ডাটাবেস</value></data>
+  <data name="NavTerminal.Content" xml:space="preserve"><value>টার্মিনাল</value></data>
+  <data name="NavFiles.Content" xml:space="preserve"><value>ফাইলস</value></data>
+  <data name="NavGit.Content" xml:space="preserve"><value>গিট</value></data>
+  <data name="NavDatabaseExplorer.Content" xml:space="preserve"><value>ডাটাবেস এক্সপ্লোরার</value></data>
+  <data name="NavMailpit.Content" xml:space="preserve"><value>মেইলপিট (ইনবক্স)</value></data>
+  <data name="NavNode.Content" xml:space="preserve"><value>Node.js অ্যাপস</value></data>
+  <data name="NavPython.Content" xml:space="preserve"><value>Python অ্যাপস</value></data>
+  <data name="NavPhpManager.Content" xml:space="preserve"><value>পিএইচপি ম্যানেজার</value></data>
+  <data name="NavPhpExt.Content" xml:space="preserve"><value>পিএইচপি এক্সটেনশন</value></data>
+  <data name="NavPhpIni.Content" xml:space="preserve"><value>php.ini এডিটর</value></data>
+  <data name="NavSSL.Content" xml:space="preserve"><value>লোকাল এসএসএল</value></data>
+  <data name="NavCron.Content" xml:space="preserve"><value>ক্রন/কিউ (Cron)</value></data>
+  <data name="SettingsLanguageTitle.Text" xml:space="preserve"><value>অ্যাপ্লিকেশন ভাষা (Language)</value></data>
+  <data name="SettingsLanguageDesc.Text" xml:space="preserve"><value>অ্যাপ্লিকেশনের ভাষা পরিবর্তন করুন। পরিবর্তন দেখতে অ্যাপটি রিস্টার্ট করতে হবে।</value></data>
+</root>

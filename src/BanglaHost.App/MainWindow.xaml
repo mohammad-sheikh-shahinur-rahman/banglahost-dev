@@ -42,29 +42,29 @@
 
             <muxc:NavigationView.MenuItems>
                 <muxc:NavigationViewItemHeader Content="Overview"/>
-                <muxc:NavigationViewItem Content="Dashboard" Tag="dashboard">
+                <muxc:NavigationViewItem x:Uid="NavDashboard" Tag="dashboard">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEA8A;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Services"  Tag="services">
+                <muxc:NavigationViewItem x:Uid="NavServices" Tag="services">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE912;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Sites"     Tag="sites" Icon="World"/>
-                <muxc:NavigationViewItem Content="SQL Studio" Tag="db_explorer">
+                <muxc:NavigationViewItem x:Uid="NavSites" Tag="sites" Icon="World"/>
+                <muxc:NavigationViewItem x:Uid="NavSQLStudio" Tag="db_explorer">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8D5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Databases" Tag="databases">
+                <muxc:NavigationViewItem x:Uid="NavDatabases" Tag="databases">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEE94;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
                 <muxc:NavigationViewItemHeader Content="Develop"/>
-                <muxc:NavigationViewItem Content="Terminal"  Tag="terminal">
+                <muxc:NavigationViewItem x:Uid="NavTerminal" Tag="terminal">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE756;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Files"     Tag="files" Icon="Folder"/>
-                <muxc:NavigationViewItem Content="Git"       Tag="git">
+                <muxc:NavigationViewItem x:Uid="NavFiles" Tag="files" Icon="Folder"/>
+                <muxc:NavigationViewItem x:Uid="NavGit" Tag="git">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8AD;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Database Explorer" Tag="explorer">
+                <muxc:NavigationViewItem x:Uid="NavDatabaseExplorer" Tag="explorer">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
@@ -78,7 +78,7 @@
                 <muxc:NavigationViewItem Content="PHP Versions" Tag="php_manager">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE898;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="PHP Extensions" Tag="php_ext">
+                <muxc:NavigationViewItem x:Uid="NavPhpExt" Tag="php_ext">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9F5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem Content="PHP INI Manager" Tag="php_ini">

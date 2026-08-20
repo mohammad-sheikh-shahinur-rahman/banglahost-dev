@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="NavDashboard.Content" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="NavServices.Content" xml:space="preserve"><value>Services</value></data>
+  <data name="NavSites.Content" xml:space="preserve"><value>Sites</value></data>
+  <data name="NavSQLStudio.Content" xml:space="preserve"><value>SQL Studio</value></data>
+  <data name="NavDatabases.Content" xml:space="preserve"><value>Databases</value></data>
+  <data name="NavTerminal.Content" xml:space="preserve"><value>Terminal</value></data>
+  <data name="NavFiles.Content" xml:space="preserve"><value>Files</value></data>
+  <data name="NavGit.Content" xml:space="preserve"><value>Git</value></data>
+  <data name="NavDatabaseExplorer.Content" xml:space="preserve"><value>Database Explorer</value></data>
+  <data name="NavMailpit.Content" xml:space="preserve"><value>Mailpit</value></data>
+  <data name="NavNode.Content" xml:space="preserve"><value>Node.js</value></data>
+  <data name="NavPython.Content" xml:space="preserve"><value>Python</value></data>
+  <data name="NavPhpManager.Content" xml:space="preserve"><value>PHP Manager</value></data>
+  <data name="NavPhpExt.Content" xml:space="preserve"><value>PHP Extensions</value></data>
+  <data name="NavPhpIni.Content" xml:space="preserve"><value>php.ini Editor</value></data>
+  <data name="NavSSL.Content" xml:space="preserve"><value>Local SSL</value></data>
+  <data name="NavCron.Content" xml:space="preserve"><value>Cron/Queue</value></data>
+  <data name="SettingsLanguageTitle.Text" xml:space="preserve"><value>Application Language</value></data>
+  <data name="SettingsLanguageDesc.Text" xml:space="preserve"><value>Change the language of the application interface. Requires restart.</value></data>
+</root>

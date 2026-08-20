@@ -26,6 +26,7 @@ public sealed class Config
     [JsonPropertyName("start_services_on_launch")] public bool StartServicesOnLaunch { get; set; } = false;
     [JsonPropertyName("root_password")]            public string RootPassword { get; set; } = "";   // "" = passwordless root
     [JsonPropertyName("install_path")]             public string InstallPath { get; set; } = @"C:\BanglaHost";
+    [JsonPropertyName("language")]                 public string Language { get; set; } = "en";
 
     private static readonly JsonSerializerOptions Opts = new()
     {

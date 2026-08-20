@@ -42,10 +42,19 @@ public sealed partial class SettingsPage : Page
         DashSizeBox.Value     = cfg.DashboardPageSize;
         SitesSizeBox.Value    = cfg.SitesPageSize;
         Version.Text = $"BanglaHost for Windows · {Updater.CurrentVersion}";
+        LangBox.SelectedIndex = Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride == "bn-BD" ? 1 : 0;
 
         _orig = (cfg.Tld, cfg.HttpPort, cfg.HttpsPort);
         SaveStatus.Text = "";
         _loading = false;
+    }
+
+        private void LangBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || LangBox.SelectedItem is not ComboBoxItem item) return;
+        var lang = item.Tag?.ToString() ?? "en-US";
+        Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang;
+        // Require restart notification can be handled later
     }
 
     private async void Save_Click(object sender, RoutedEventArgs e)

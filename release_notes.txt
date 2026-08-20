@@ -1,0 +1,15 @@
+**?? What's New in BanglaHost v1.4.8.0 (Major Update)**
+
+This massive update transforms BanglaHost into a complete all-in-one web development powerhouse! Here is what's new:
+
+*   **Integrated SQL Studio:** Added a native Database Explorer. Browse local MySQL/MariaDB databases, view tables, and execute raw SQL queries interactively without needing external tools like phpMyAdmin!
+*   **Built-in Email Inbox:** Testing local emails is now easier than ever. We've integrated an email inbox UI (powered by Mailpit) right inside the app to intercept and preview outgoing emails from your local sites.
+*   **PHP Version Manager:** Say goodbye to manual downloads! You can now browse, download, extract, and seamlessly switch between different PHP versions directly from the new PHP Manager page.
+*   **NPM Script Runner:** The app now dynamically parses your package.json file. You can run scripts like 
+pm run dev or 
+pm run build directly from the UI with a live realtime terminal view.
+*   **Background Cron & Queue Manager:** Introduced a dedicated Background Worker page to manage Laravel Queues and Cron jobs silently in the background without cluttering your screen with terminal windows.
+*   **Redesigned Support Hub:** Fully revamped the Support, Documentation, and Donate pages with a gorgeous modern Windows 11 (WinUI 3) interface.
+*   **UI/UX Improvements:** Fixed critical responsiveness bugs on the SSL and PHP pages. The UI now gracefully scales across any window size without overlapping elements.
+
+Update now and supercharge your local development workflow! ??

@@ -14,7 +14,20 @@
                 <TextBlock Text="Settings" Style="{StaticResource PageTitleStyle}" VerticalAlignment="Center"/>
             </StackPanel>
 
-            <!-- ════ Domains, ports & defaults ════ -->
+                        <Border Style="{StaticResource PremiumCard}">
+                <StackPanel Spacing="14">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE774;" FontSize="14" Foreground="{StaticResource BhInfoBrush}"/>
+                        <TextBlock x:Uid="SettingsLanguageTitle" Style="{StaticResource CardTitleStyle}"/>
+                    </StackPanel>
+                    <TextBlock x:Uid="SettingsLanguageDesc" Opacity="0.7"/>
+                    <ComboBox x:Name="LangBox" Width="200" CornerRadius="8" SelectionChanged="LangBox_SelectionChanged">
+                        <ComboBoxItem Content="English" Tag="en-US"/>
+                        <ComboBoxItem Content="?????" Tag="bn-BD"/>
+                    </ComboBox>
+                </StackPanel>
+            </Border>
+            <!-- ? Domains, ports & defaults ════ -->
             <Border Style="{StaticResource PremiumCard}">
                 <StackPanel Spacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="8">
