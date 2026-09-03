@@ -1,0 +1,95 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore BanglaHost.sln
+
+      # Core + Cli + Tests build on any runner. The App project needs the Windows App SDK
+      # workload, so it is built separately and allowed to be the slow step.
+      - name: Build Core, CLI, Elevate, Tests
+        run: |
+          dotnet build src/BanglaHost.Core/BanglaHost.Core.csproj -c Release --no-restore
+          dotnet build src/BanglaHost.Cli/BanglaHost.Cli.csproj -c Release --no-restore
+          dotnet build src/BanglaHost.Elevate/BanglaHost.Elevate.csproj -c Release --no-restore
+          dotnet build src/BanglaHost.Tests/BanglaHost.Tests.csproj -c Release --no-restore
+
+      - name: Test
+        run: dotnet test src/BanglaHost.Tests/BanglaHost.Tests.csproj -c Release --no-build --verbosity normal
+
+      - name: Build App (WinUI)
+        run: dotnet build src/BanglaHost.App/BanglaHost.App.csproj -c Release -p:Platform=x64
+
+  # Static gates from the audit. These are the checks that would have caught the
+  # findings in sections B and F, so they run on every push rather than at review time.
+  static-gates:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No password-on-command-line patterns
+        shell: pwsh
+        run: |
+          $hits = Select-String -Path src/**/*.cs -Pattern '(?<!--defaults-extra-file=)"?\s-p\{' -AllMatches
+          if ($hits) { $hits | ForEach-Object { Write-Host "::error file=$($_.Path),line=$($_.LineNumber)::password on command line" }; exit 1 }
+          Write-Host "ok: no -p{password} patterns"
+
+      - name: No bare-name executable launches
+        shell: pwsh
+        run: |
+          $bad = Select-String -Path src/**/*.cs -Pattern 'FileName\s*=\s*"(powershell|cmd|cmd\.exe|wt|wt\.exe|powershell\.exe)"' -AllMatches
+          if ($bad) { $bad | ForEach-Object { Write-Host "::error file=$($_.Path),line=$($_.LineNumber)::bare executable name resolved via PATH" }; exit 1 }
+          Write-Host "ok: no bare-name executable launches"
+
+      - name: No cmd.exe /c shell wrapping
+        shell: pwsh
+        run: |
+          $bad = Select-String -Path src/**/*.cs -Pattern 'cmd\.exe.*"/c' -AllMatches
+          if ($bad) { $bad | ForEach-Object { Write-Host "::error file=$($_.Path),line=$($_.LineNumber)::cmd.exe /c wrapping" }; exit 1 }
+          Write-Host "ok: no cmd.exe /c wrapping"
+
+      - name: Accessibility - every interactive control needs an accessible name
+        shell: pwsh
+        run: |
+          $views = Get-ChildItem -Recurse -Path src/BanglaHost.App -Filter *.xaml
+          $missing = @()
+          foreach ($v in $views) {
+            $t = Get-Content $v.FullName -Raw
+            # A view with interactive controls but no AutomationProperties and no x:Uid anywhere.
+            if ($t -match '<(Button|ToggleSwitch|ComboBox|TextBox|CheckBox|RadioButton|Slider|ToggleButton)\b' -and
+                $t -notmatch 'AutomationProperties\.' -and $t -notmatch 'x:Uid=') {
+              $missing += $v.FullName
+            }
+          }
+          if ($missing.Count -gt 0) {
+            $missing | ForEach-Object { Write-Host "::warning file=$_::interactive controls with no AutomationProperties or x:Uid" }
+            Write-Host "$($missing.Count) view(s) still need accessible names"
+          } else {
+            Write-Host "ok: all views with interactive controls expose accessible names"
+          }
+
+      - name: Views must not call Core directly on the dispatcher
+        shell: pwsh
+        run: |
+          # Synchronous Core entry points that block. Views must go through EngineHost.
+          $pattern = 'Engine\.(Api|Start|Stop|Restart|Install|Uninstall|Update)\(|DbServer\.(Start|Stop|Running)\('
+          $bad = Select-String -Path src/BanglaHost.App/Views/*.cs -Pattern $pattern -AllMatches |
+                 Where-Object { $_.Line -notmatch 'Task\.Run|EngineHost|await|//' }
+          if ($bad) { $bad | ForEach-Object { Write-Host "::error file=$($_.Path),line=$($_.LineNumber)::View calls blocking Core on the UI thread" }; exit 1 }
+          Write-Host "ok: no direct blocking Core calls from Views"

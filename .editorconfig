@@ -1,0 +1,14 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,xaml,resw,resx,csproj,props,targets,json,md,yml,ps1}]
+charset = utf-8
+
+[*.cs]
+indent_style = space
+indent_size = 4
