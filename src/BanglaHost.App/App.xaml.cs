@@ -11,6 +11,12 @@ public partial class App : Application
 
     public App()
     {
+        // Re-apply the user's chosen UI language BEFORE any XAML loads. WinUI resolves x:Uid strings
+        // at control-construction time against the primary-language override, and that override is
+        // NOT reliably persisted for an unpackaged app across the Settings "restart". Without this,
+        // picking Bangla in Settings silently reverts to English on the very next launch.
+        ApplySavedLanguage();
+
         InitializeComponent();
 
         this.UnhandledException += (s, e) =>
@@ -44,6 +50,22 @@ public partial class App : Application
     }
 
     // The inline LogCrash has been moved to Services.CrashLogger
+
+    /// <summary>Read the saved UI language from config and set it as the primary-language override
+    /// (both the WinAppSDK and the classic WinRT API — one of the two applies depending on packaging).
+    /// Values are BCP-47 tags matching the Strings\&lt;lang&gt; resw folders ("en-US", "bn-BD"). Best-effort:
+    /// any failure just leaves the system default in place.</summary>
+    private static void ApplySavedLanguage()
+    {
+        try
+        {
+            var lang = BanglaHost.Core.Config.Load().Language;
+            if (string.IsNullOrWhiteSpace(lang)) return;
+            try { Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang; } catch { }
+            try { Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang; } catch { }
+        }
+        catch { }
+    }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {

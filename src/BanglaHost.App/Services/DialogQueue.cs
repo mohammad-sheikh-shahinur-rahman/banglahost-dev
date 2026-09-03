@@ -28,6 +28,7 @@ public static class DialogQueue
             }
 
             _currentDialog = new WeakReference<ContentDialog>(dialog);
+            Localizer.LocalizeDialog(dialog);   // Bangla mode: translate title/buttons/string-content centrally
             return await dialog.ShowAsync();
         }
         catch (Exception) when (dialog.XamlRoot == null)

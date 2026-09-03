@@ -130,7 +130,7 @@ var body = $$"""
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         using var p = Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
         p.WaitForExit();
         return (outp.Contains("Syntax OK"), outp);
     }

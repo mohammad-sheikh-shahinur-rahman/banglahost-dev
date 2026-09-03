@@ -18,14 +18,22 @@ public sealed partial class VsCodePage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
         var snap = await EngineHost.Instance.Snapshot();
         SiteList.ItemsSource = snap.Sites.Select(s => s.Root).Where(r => !string.IsNullOrWhiteSpace(r)).Distinct().ToList();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void RefreshBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task RefreshAsync()
@@ -45,6 +53,8 @@ public sealed partial class VsCodePage : Page
 
     private async void InstallExt_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string extId)
         {
             btn.IsEnabled = false;
@@ -55,5 +65,7 @@ public sealed partial class VsCodePage : Page
             
             btn.IsEnabled = true;
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }

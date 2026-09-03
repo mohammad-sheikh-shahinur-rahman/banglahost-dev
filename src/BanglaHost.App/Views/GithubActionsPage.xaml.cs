@@ -16,15 +16,21 @@ public sealed partial class GithubActionsPage : Page
 
     private async void BrowseBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
             if (folderPath != null)
             {
                 ProjectDirBox.Text = folderPath;
             }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void ScaffoldBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var path = ProjectDirBox.Text.Trim();
         var typeItem = TypeBox.SelectedItem as ComboBoxItem;
         var type = typeItem?.Content?.ToString()?.ToLower() ?? "laravel";
@@ -44,6 +50,8 @@ public sealed partial class GithubActionsPage : Page
         
         if (sender is Button b) b.IsEnabled = true;
         StatusLabel.Text = success ? "Scaffold completed successfully." : "Scaffold failed or already exists.";
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private System.Threading.CancellationTokenSource? _pollingCts;
@@ -199,6 +207,8 @@ public sealed partial class GithubActionsPage : Page
 
     private async void OpenGithubBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (!string.IsNullOrEmpty(_verificationUri))
         {
             await Windows.System.Launcher.LaunchUriAsync(new Uri(_verificationUri));
@@ -207,6 +217,8 @@ public sealed partial class GithubActionsPage : Page
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dataPackage);
             LogViewer.Text += "Copied code to clipboard and opened browser.\n";
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void CancelLoginBtn_Click(object sender, RoutedEventArgs e)

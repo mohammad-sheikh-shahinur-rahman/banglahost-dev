@@ -27,9 +27,13 @@ public sealed partial class AiAssistantPage : Page
 
     private async void InstallOllama_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         SetupCard.Visibility = Visibility.Collapsed;
         await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.Install("ollama"));
         CheckOllama();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void Input_KeyUp(object sender, KeyRoutedEventArgs e)

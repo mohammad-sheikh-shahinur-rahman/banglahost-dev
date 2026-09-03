@@ -43,7 +43,7 @@ public sealed class EngineHost
         if (string.IsNullOrWhiteSpace(msg)) msg = ex.GetType().Name;
         else msg = $"{msg} ({ex.GetType().Name})";
         if (ex.InnerException is { } inner)
-            msg += "\nâ†³ " + (string.IsNullOrWhiteSpace(inner.Message) ? inner.GetType().Name : inner.Message);
+            msg += "\n↳ " + (string.IsNullOrWhiteSpace(inner.Message) ? inner.GetType().Name : inner.Message);
         return msg;
     }
 

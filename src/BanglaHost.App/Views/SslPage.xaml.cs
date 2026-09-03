@@ -36,6 +36,8 @@ public sealed partial class SslPage : Page
 
     private async void GenLocalBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var domain = DomainBox.Text.Trim();
         if (string.IsNullOrEmpty(domain)) return;
 
@@ -50,10 +52,14 @@ public sealed partial class SslPage : Page
             DomainBox.Text = "";
             LoadCerts();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void GenLeBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var domain = DomainBox.Text.Trim();
         var email = EmailBox.Text.Trim();
         if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(email)) return;
@@ -70,6 +76,8 @@ public sealed partial class SslPage : Page
             EmailBox.Text = "";
             LoadCerts();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void DeleteBtn_Click(object sender, RoutedEventArgs e)

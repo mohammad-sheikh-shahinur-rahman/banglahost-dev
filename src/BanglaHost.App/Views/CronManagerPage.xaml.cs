@@ -43,6 +43,8 @@ public sealed partial class CronManagerPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         var cfg = Config.Load();
         try
         {
@@ -56,6 +58,8 @@ public sealed partial class CronManagerPage : Page
             SiteList.ItemsSource = sites;
         }
         catch { }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void Queue_Toggled(object sender, RoutedEventArgs e)

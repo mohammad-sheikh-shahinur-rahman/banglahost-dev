@@ -37,6 +37,8 @@ public sealed partial class FileWatcherPage : Page
 
     private async void BrowseBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var picker = new FileOpenPicker();
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window);
         WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
@@ -48,6 +50,8 @@ public sealed partial class FileWatcherPage : Page
             FileBox.Text = file.Path;
             StartWatching(file.Path);
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void StartWatching(string path)

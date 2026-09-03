@@ -52,7 +52,7 @@ public static class DbServer
             RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         using var p = Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
         p.WaitForExit();
         return (p.ExitCode, outp);
     }
@@ -119,9 +119,12 @@ public static class DbServer
             UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(mysqld)!,
         };
-        using var proc = Process.Start(psi);
-        if (proc is null) return (false, "failed to spawn mysqld");
-        JobManager.Add(proc);
+        using var proc = Process.Start(psi);
+
+        if (proc is null) return (false, "failed to spawn mysqld");
+
+        JobManager.Add(proc);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile, JsonSerializer.Serialize(new { pid = proc.Id, port = Port, engine }));
 

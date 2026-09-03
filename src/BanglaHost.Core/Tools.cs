@@ -236,7 +236,7 @@ public static class Tools
                 RedirectStandardOutput = true, RedirectStandardError = true,
             };
             var p = System.Diagnostics.Process.Start(psi)!;
-            var outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+            var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
             p.WaitForExit(4000);
             var m = System.Text.RegularExpressions.Regex.Match(outp, @"(\d+\.\d+\.\d+)");
             if (m.Success) { _pyVer = m.Groups[1].Value; _pyVerForExe = exe; return _pyVer; }

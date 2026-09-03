@@ -57,8 +57,7 @@ public static class Database
             WorkingDirectory = bin,
         };
         using var p = Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd();
-        var err = p.StandardError.ReadToEnd();
+        var _errT = p.StandardError.ReadToEndAsync(); var outp = p.StandardOutput.ReadToEnd(); var err = _errT.Result;
         p.WaitForExit();
         // MariaDB's client prints a harmless "--ssl-verify-server-cert is disabled … passwordless
         // login" warning to stderr on local logins. Drop it so it can't be mistaken for a database

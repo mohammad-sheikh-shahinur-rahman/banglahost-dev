@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="BanglaHost.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -36,12 +36,12 @@
 
             <!-- Sidebar search box -->
             <muxc:NavigationView.AutoSuggestBox>
-                <AutoSuggestBox x:Name="NavSearch" PlaceholderText="Search…" QueryIcon="Find"
+                <AutoSuggestBox x:Name="NavSearch" x:Uid="NavSearch" QueryIcon="Find"
                                 TextChanged="NavSearch_TextChanged" SuggestionChosen="NavSearch_SuggestionChosen"/>
             </muxc:NavigationView.AutoSuggestBox>
 
             <muxc:NavigationView.MenuItems>
-                <muxc:NavigationViewItemHeader Content="Overview"/>
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrOverview"/>
                 <muxc:NavigationViewItem x:Uid="NavDashboard" Tag="dashboard">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEA8A;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
@@ -56,7 +56,7 @@
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEE94;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Develop"/>
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrDevelop"/>
                 <muxc:NavigationViewItem x:Uid="NavTerminal" Tag="terminal">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE756;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
@@ -68,134 +68,133 @@
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Runtimes"/>
-                <muxc:NavigationViewItem Content="Node"      Tag="node">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrRuntimes"/>
+                <muxc:NavigationViewItem x:Uid="NavNode" Tag="node">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Python"    Tag="python">
+                <muxc:NavigationViewItem x:Uid="NavPython" Tag="python">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE943;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="PHP Versions" Tag="php_manager">
+                <muxc:NavigationViewItem x:Uid="NavPhpManager" Tag="php_manager">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE898;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
                 <muxc:NavigationViewItem x:Uid="NavPhpExt" Tag="php_ext">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9F5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="PHP INI Manager" Tag="php_ini">
+                <muxc:NavigationViewItem x:Uid="NavPhpIni" Tag="php_ini">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE81E;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Automation"/>
-                <muxc:NavigationViewItem Content="SSL"       Tag="ssl">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrAutomation"/>
+                <muxc:NavigationViewItem x:Uid="NavSSL" Tag="ssl">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE72E;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Domains"   Tag="domains">
+                <muxc:NavigationViewItem x:Uid="NavDomains" Tag="domains">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE774;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Deploy"    Tag="deploy">
+                <muxc:NavigationViewItem x:Uid="NavDeploy" Tag="deploy">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE898;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Backup"    Tag="backup">
+                <muxc:NavigationViewItem x:Uid="NavBackup" Tag="backup">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE895;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Scheduler" Tag="scheduler" Icon="Calendar"/>
-                <muxc:NavigationViewItem Content="Background Workers" Tag="cron_manager">
+                <muxc:NavigationViewItem x:Uid="NavScheduler" Tag="scheduler" Icon="Calendar"/>
+                <muxc:NavigationViewItem x:Uid="NavCronManager" Tag="cron_manager">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE946;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="NPM Scripts" Tag="npm_runner">
+                <muxc:NavigationViewItem x:Uid="NavNpm" Tag="npm_runner">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Email Inbox" Tag="email_inbox">
+                <muxc:NavigationViewItem x:Uid="NavEmailInbox" Tag="email_inbox">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE715;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Security"  Tag="security">
+                <muxc:NavigationViewItem x:Uid="NavSecurity" Tag="security">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEA18;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Monitoring"/>
-                <muxc:NavigationViewItem Content="Logs"      Tag="logs">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrMonitoring"/>
+                <muxc:NavigationViewItem x:Uid="NavLogs" Tag="logs">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Network"   Tag="network">
+                <muxc:NavigationViewItem x:Uid="NavNetwork" Tag="network">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE968;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Cache"     Tag="cache">
+                <muxc:NavigationViewItem x:Uid="NavCache" Tag="cache">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE946;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Queue"     Tag="queue">
+                <muxc:NavigationViewItem x:Uid="NavQueue" Tag="queue">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE756;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Email"     Tag="email">
+                <muxc:NavigationViewItem x:Uid="NavEmail" Tag="email">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE715;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Docker"    Tag="docker">
+                <muxc:NavigationViewItem x:Uid="NavDocker" Tag="docker">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE7F8;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="VS Code"   Tag="vscode">
+                <muxc:NavigationViewItem x:Uid="NavVsCode" Tag="vscode">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="GitHub Actions" Tag="github_actions">
+                <muxc:NavigationViewItem x:Uid="NavGithubActions" Tag="github_actions">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE78B;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Cloudflare Tunnel" Tag="cf_tunnel">
+                <muxc:NavigationViewItem x:Uid="NavCfTunnel" Tag="cf_tunnel">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE72D;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Explore"/>
-                <muxc:NavigationViewItem Content="AI Assistant" Tag="ai">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrExplore"/>
+                <muxc:NavigationViewItem x:Uid="NavAi" Tag="ai">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE99A;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Marketplace"  Tag="marketplace" Icon="Shop"/>
-                <muxc:NavigationViewItem Content="Blueprint"    Tag="blueprint">
+                <muxc:NavigationViewItem x:Uid="NavMarketplace" Tag="marketplace" Icon="Shop"/>
+                <muxc:NavigationViewItem x:Uid="NavBlueprint" Tag="blueprint">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE70F;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Diagnostics"/>
-                <muxc:NavigationViewItem Content="Profiler" Tag="profiler">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrDiagnostics"/>
+                <muxc:NavigationViewItem x:Uid="NavProfiler" Tag="profiler">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9D9;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Site Health" Tag="site_health">
+                <muxc:NavigationViewItem x:Uid="NavSiteHealth" Tag="site_health">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE9A1;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Log Watcher" Tag="file_watcher">
+                <muxc:NavigationViewItem x:Uid="NavFileWatcher" Tag="file_watcher">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE71C;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Logs"      Tag="logs" Icon="Memo"/>
 
-                <muxc:NavigationViewItemHeader Content="Tools"/>
-                <muxc:NavigationViewItem Content="API Tester" Tag="api_tester">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrTools"/>
+                <muxc:NavigationViewItem x:Uid="NavApiTester" Tag="api_tester">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE968;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Reverse Proxy" Tag="reverse_proxy">
+                <muxc:NavigationViewItem x:Uid="NavReverseProxy" Tag="reverse_proxy">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8B1;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content=".env Manager" Tag="env_manager">
+                <muxc:NavigationViewItem x:Uid="NavEnvManager" Tag="env_manager">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE731;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Package Manager" Tag="package_manager">
+                <muxc:NavigationViewItem x:Uid="NavPackageManager" Tag="package_manager">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE7B8;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Project Analyzer" Tag="project_analyzer">
+                <muxc:NavigationViewItem x:Uid="NavProjectAnalyzer" Tag="project_analyzer">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE943;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
 
-                <muxc:NavigationViewItemHeader Content="Support"/>
-                <muxc:NavigationViewItem Content="About BanglaHost" Tag="about">
+                <muxc:NavigationViewItemHeader x:Uid="NavHdrSupport"/>
+                <muxc:NavigationViewItem x:Uid="NavAbout" Tag="about">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE946;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Contact Support" Tag="support_email">
+                <muxc:NavigationViewItem x:Uid="NavContactSupport" Tag="support_email">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE715;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Report Bug" Tag="support_bug">
+                <muxc:NavigationViewItem x:Uid="NavReportBug" Tag="support_bug">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEBE8;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Request Feature" Tag="support_feature">
+                <muxc:NavigationViewItem x:Uid="NavRequestFeature" Tag="support_feature">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xEA80;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Documentation" Tag="support_docs">
+                <muxc:NavigationViewItem x:Uid="NavDocumentation" Tag="support_docs">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8A5;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
-                <muxc:NavigationViewItem Content="Donate" Tag="support_donate">
+                <muxc:NavigationViewItem x:Uid="NavDonate" Tag="support_donate">
                     <muxc:NavigationViewItem.Icon><FontIcon Glyph="&#xE8B0;"/></muxc:NavigationViewItem.Icon>
                 </muxc:NavigationViewItem>
             </muxc:NavigationView.MenuItems>
@@ -206,3 +205,4 @@
         </muxc:NavigationView>
     </Grid>
 </Window>
+

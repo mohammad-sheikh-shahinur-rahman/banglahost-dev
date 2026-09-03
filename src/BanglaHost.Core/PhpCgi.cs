@@ -58,7 +58,7 @@ public static class PhpCgi
 
         // Tune the build's php.ini before launching (uploads + OPcache/JIT + realpath cache) so
         // both nginx- and Apache-served PHP are fast. Idempotent + survives reinstalls (runs on
-        // every start, only writes when something differs). OPcache is the big WordPress win �
+        // every start, only writes when something differs). OPcache is the big WordPress win —
         // Windows PHP ships it off, so every request recompiles all PHP without this.
         EnsureLimits(Path.GetDirectoryName(exe)!, version);
 
@@ -70,7 +70,7 @@ public static class PhpCgi
             UseShellExecute = false,
             CreateNoWindow = true,
             // Redirect (and never read) so the daemon does NOT inherit the caller's
-            // console/stdout handle � otherwise a foreground shell stays "open" waiting
+            // console/stdout handle — otherwise a foreground shell stays "open" waiting
             // on this long-running child. php-cgi -b logs to nginx, not stdout.
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -90,7 +90,7 @@ public static class PhpCgi
         psi.Environment["PHP_INI_SCAN_DIR"] = ";" + confd;
 
         // ── Guarantee a usable Path + SystemRoot for the workers ────────────────────────────────
-        // The tray App can be launched with a STRIPPED environment (empty Path/SystemRoot � observed
+        // The tray App can be launched with a STRIPPED environment (empty Path/SystemRoot — observed
         // when it starts via its login-item/elevation path). php-cgi inherits that, and the FastCGI
         // CHILD workers the master then spawns can't resolve the ionCube loader's dependency DLLs (the
         // VC++ runtime in System32) → ionCube SILENTLY fails to load, breaking every ionCube-encoded
@@ -135,7 +135,7 @@ public static class PhpCgi
         return true;
     }
 
-    /// <summary>BanglaHost's php.ini defaults � generous uploads + performance (OPcache/JIT/realpath).</summary>
+    /// <summary>BanglaHost's php.ini defaults — generous uploads + performance (OPcache/JIT/realpath).</summary>
     private static readonly (string key, string val)[] Limits =
     {
         // generous local-dev limits
@@ -145,15 +145,15 @@ public static class PhpCgi
         ("max_execution_time",  "600"),
         ("max_input_time",      "600"),
         ("max_file_uploads",    "50"),
-        // error logging � log ALL errors to a file in the BanglaHost logs dir
+        // error logging — log ALL errors to a file in the BanglaHost logs dir
         ("error_reporting",     "E_ALL"),
         ("display_errors",      "On"),
         ("display_startup_errors", "On"),
         ("log_errors",          "On"),
-        // realpath cache � WordPress includes hundreds of files; Windows file stat is slow
+        // realpath cache — WordPress includes hundreds of files; Windows file stat is slow
         ("realpath_cache_size", "4096k"),
         ("realpath_cache_ttl",  "600"),
-        // OPcache � caches compiled PHP so each request doesn't recompile all of WP (huge on Windows)
+        // OPcache — caches compiled PHP so each request doesn't recompile all of WP (huge on Windows)
         ("opcache.enable",                 "1"),
         ("opcache.enable_cli",             "0"),
         ("opcache.memory_consumption",     "256"),
@@ -181,7 +181,7 @@ public static class PhpCgi
             var erx = new Regex(@"(?m)^[ \t]*;?[ \t]*error_log[ \t]*=.*$");
             text = erx.IsMatch(text) ? erx.Replace(text, $"error_log = \"{logPath}\"", 1) : text.TrimEnd() + $"\nerror_log = \"{logPath}\"\n";
 
-            // OPcache is a Zend extension � php.ini-development ships it commented. Turn it on.
+            // OPcache is a Zend extension — php.ini-development ships it commented. Turn it on.
             if (Regex.IsMatch(text, @"(?m)^[ \t]*;[ \t]*zend_extension[ \t]*=[ \t]*opcache"))
                 text = Regex.Replace(text, @"(?m)^[ \t]*;[ \t]*zend_extension[ \t]*=[ \t]*opcache.*$", "zend_extension=opcache", RegexOptions.None);
             else if (!Regex.IsMatch(text, @"(?m)^[ \t]*zend_extension[ \t]*=[ \t]*opcache"))
@@ -206,9 +206,9 @@ public static class PhpCgi
             try { BanglaHost.Core.ProcessUtils.KillSafe(info.Pid); } catch { /* already gone */ }
         }
         // The tracked pid can be stale while ORPHANED php-cgi masters from earlier starts keep
-        // serving the port (a restart that didn't clean up cleanly, an app relaunch, etc. � the
+        // serving the port (a restart that didn't clean up cleanly, an app relaunch, etc. — the
         // same pile-up nginx had). Then a "restart" kills only the tracked pid, the orphan keeps
-        // answering, and workers spawned with a stale/stripped env stay live � which is why ionCube
+        // answering, and workers spawned with a stale/stripped env stay live — which is why ionCube
         // stopped loading until a full stop-all + start-all. Kill EVERY php-cgi for THIS version's
         // exe path so a restart truly respawns fresh workers (with the ionCube-capable env).
         var exe = Tools.PhpCgiExe(version);

@@ -179,15 +179,21 @@ public static class BackupService
         if (dumpExe == null || !File.Exists(dumpExe)) throw new BhException("mysqldump not found.");
         var user = "root";
         var pass = cfg.RootPassword;
-        var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {DbServer.Port} -h 127.0.0.1";
         
         var psi = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"\"{dumpExe}\" --opt {auth} {dbName} --result-file=\"{outputPath}\"\"",
+            FileName = dumpExe,
             UseShellExecute = false, CreateNoWindow = true
         };
-        var p = Process.Start(psi);
+        psi.ArgumentList.Add("--opt");
+        psi.ArgumentList.Add("-u"); psi.ArgumentList.Add(user);
+        if (!string.IsNullOrEmpty(pass)) psi.ArgumentList.Add($"-p{pass}");
+        psi.ArgumentList.Add("-P"); psi.ArgumentList.Add(DbServer.Port.ToString());
+        psi.ArgumentList.Add("-h"); psi.ArgumentList.Add("127.0.0.1");
+        psi.ArgumentList.Add(dbName);
+        psi.ArgumentList.Add($"--result-file={outputPath}");
+
+        using var p = Process.Start(psi);
         p?.WaitForExit();
         if (p?.ExitCode != 0) throw new BhException($"Failed to dump database '{dbName}'.");
     }
@@ -233,20 +239,37 @@ public static class BackupService
         if (mysqlExe == null || !File.Exists(mysqlExe)) throw new BhException("mysql not found.");
         var user = "root";
         var pass = cfg.RootPassword;
-        var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {DbServer.Port} -h 127.0.0.1";
+        
+        Action<ProcessStartInfo> addAuth = (p) => {
+            p.ArgumentList.Add("-u"); p.ArgumentList.Add(user);
+            if (!string.IsNullOrEmpty(pass)) p.ArgumentList.Add($"-p{pass}");
+            p.ArgumentList.Add("-P"); p.ArgumentList.Add(DbServer.Port.ToString());
+            p.ArgumentList.Add("-h"); p.ArgumentList.Add("127.0.0.1");
+        };
         
         // Ensure DB exists before importing
-        try { using (var p = Process.Start(new ProcessStartInfo { FileName = mysqlExe, Arguments = $"{auth} -e \"CREATE DATABASE IF NOT EXISTS \\\"{dbName}\\\";\"", UseShellExecute = false, CreateNoWindow = true })) { p?.WaitForExit(); } } catch { }
+        var psiCreate = new ProcessStartInfo { FileName = mysqlExe, UseShellExecute = false, CreateNoWindow = true };
+        addAuth(psiCreate);
+        psiCreate.ArgumentList.Add("-e");
+        psiCreate.ArgumentList.Add($"CREATE DATABASE IF NOT EXISTS `{dbName}`;");
+        using (var p = Process.Start(psiCreate)) { p?.WaitForExit(); }
         
-        var psi = new ProcessStartInfo
+        var psiImport = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"\"{mysqlExe}\" {auth} \"{dbName}\" < \"{sqlPath}\"\"",
-            UseShellExecute = false, CreateNoWindow = true
+            FileName = mysqlExe,
+            UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardInput = true
         };
-        var pCmd = Process.Start(psi);
-        pCmd?.WaitForExit();
-        if (pCmd?.ExitCode != 0) throw new BhException($"Failed to import database '{dbName}'.");
+        addAuth(psiImport);
+        psiImport.ArgumentList.Add(dbName);
+        
+        using var pCmd = Process.Start(psiImport);
+        if (pCmd != null)
+        {
+            using (var fs = File.OpenRead(sqlPath)) { fs.CopyTo(pCmd.StandardInput.BaseStream); pCmd.StandardInput.Close(); }
+            pCmd.WaitForExit();
+            if (pCmd.ExitCode != 0) throw new BhException($"Failed to import database '{dbName}'.");
+        }
     }
 }
 

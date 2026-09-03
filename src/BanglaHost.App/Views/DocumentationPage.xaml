@@ -4,104 +4,132 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <ScrollViewer Padding="40">
-        <StackPanel Spacing="32" MaxWidth="1000">
-            <!-- Header -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="Documentation &amp; Guides" FontSize="36" FontWeight="Bold"/>
-                <TextBlock Text="Learn how to make the most out of BanglaHost. Click any topic to read the guide." 
-                           FontSize="16" Opacity="0.7"/>
+    <Grid>
+        <!-- ═══════════ INDEX (the six topic cards) ═══════════ -->
+        <ScrollViewer x:Name="IndexView" Padding="40">
+            <StackPanel Spacing="32" MaxWidth="1000">
+                <!-- Header -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Documentation &amp; Guides" FontSize="36" FontWeight="Bold"/>
+                    <TextBlock Text="Learn how to make the most out of BanglaHost. Click any topic to read the guide."
+                               FontSize="16" Opacity="0.7"/>
+                </StackPanel>
+
+                <Grid ColumnSpacing="20" RowSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Card 1 -->
+                    <Button Grid.Row="0" Grid.Column="0" Tag="getting-started" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE7F4;" FontSize="32" Foreground="#FF3B82F6" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Getting Started" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Installation, directory structure, and basic project setup guide." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Card 2 -->
+                    <Button Grid.Row="0" Grid.Column="1" Tag="database" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE8D5;" FontSize="32" Foreground="#FF10B981" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Database Management" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="How to connect to MySQL/PostgreSQL and use the SQL Studio." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Card 3 -->
+                    <Button Grid.Row="0" Grid.Column="2" Tag="ssl" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE72E;" FontSize="32" Foreground="#FFF59E0B" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Local SSL (HTTPS)" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Securing your *.test domains with mkcert and fixing browser warnings." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Card 4 -->
+                    <Button Grid.Row="1" Grid.Column="0" Tag="php" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE718;" FontSize="32" Foreground="#FF8B5CF6" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Multiple PHP Versions" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Switching PHP versions, managing extensions, and editing php.ini." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Card 5 -->
+                    <Button Grid.Row="1" Grid.Column="1" Tag="workers" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE7B8;" FontSize="32" Foreground="#FFEC4899" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Background Workers" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Setting up Laravel Queues, Cron jobs, and running NPM scripts." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+
+                    <!-- Card 6 -->
+                    <Button Grid.Row="1" Grid.Column="2" Tag="tunnel" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
+                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
+                            <StackPanel Spacing="12">
+                                <FontIcon Glyph="&#xE8F1;" FontSize="32" Foreground="#FF06B6D4" HorizontalAlignment="Left"/>
+                                <TextBlock Text="Live Cloudflare Tunnels" FontWeight="Bold" FontSize="18"/>
+                                <TextBlock Text="Sharing your local site publicly using Cloudflare tunnels." Opacity="0.7" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </Button>
+                </Grid>
+
+                <!-- Community Banner -->
+                <Border Background="#103B82F6" BorderBrush="#303B82F6" BorderThickness="1" CornerRadius="12" Padding="32">
+                    <StackPanel Orientation="Horizontal" Spacing="24">
+                        <FontIcon Glyph="&#xE90A;" FontSize="48" Foreground="#FF3B82F6" VerticalAlignment="Center"/>
+                        <StackPanel Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="Join the Community" FontSize="20" FontWeight="Bold"/>
+                            <TextBlock Text="Can't find what you're looking for? Join our official Facebook Group to ask questions, share ideas, and get help from other developers." TextWrapping="Wrap" Opacity="0.8"/>
+                            <Button Content="Join Facebook Group" Click="JoinCommunity_Click" Style="{StaticResource AccentButtonStyle}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ═══════════ READER (full guide content, shown after a card is clicked) ═══════════ -->
+        <Grid x:Name="DetailView" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Padding="40,28,40,8">
+                <Button Click="Back_Click" CornerRadius="8">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE72B;" FontSize="14"/>
+                        <TextBlock Text="All guides"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
 
-            <Grid ColumnSpacing="20" RowSpacing="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- Card 1 -->
-                <Button Grid.Row="0" Grid.Column="0" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE7F4;" FontSize="32" Foreground="#FF3B82F6" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Getting Started" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="Installation, directory structure, and basic project setup guide." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-
-                <!-- Card 2 -->
-                <Button Grid.Row="0" Grid.Column="1" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE8D5;" FontSize="32" Foreground="#FF10B981" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Database Management" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="How to connect to MySQL/PostgreSQL and use the SQL Studio." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-
-                <!-- Card 3 -->
-                <Button Grid.Row="0" Grid.Column="2" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE72E;" FontSize="32" Foreground="#FFF59E0B" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Local SSL (HTTPS)" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="Securing your *.test domains with mkcert and fixing browser warnings." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-
-                <!-- Card 4 -->
-                <Button Grid.Row="1" Grid.Column="0" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE718;" FontSize="32" Foreground="#FF8B5CF6" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Multiple PHP Versions" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="Switching PHP versions, managing extensions, and editing php.ini." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-
-                <!-- Card 5 -->
-                <Button Grid.Row="1" Grid.Column="1" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE7B8;" FontSize="32" Foreground="#FFEC4899" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Background Workers" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="Setting up Laravel Queues, Cron jobs, and running NPM scripts." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-
-                <!-- Card 6 -->
-                <Button Grid.Row="1" Grid.Column="2" Click="OpenGuide_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0" CornerRadius="12">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" Padding="24">
-                        <StackPanel Spacing="12">
-                            <FontIcon Glyph="&#xE8F1;" FontSize="32" Foreground="#FF06B6D4" HorizontalAlignment="Left"/>
-                            <TextBlock Text="Live Cloudflare Tunnels" FontWeight="Bold" FontSize="18"/>
-                            <TextBlock Text="Sharing your local site publicly using Cloudflare tunnels." Opacity="0.7" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                </Button>
-            </Grid>
-
-            <!-- Community Banner -->
-            <Border Background="#103B82F6" BorderBrush="#303B82F6" BorderThickness="1" CornerRadius="12" Padding="32">
-                <StackPanel Orientation="Horizontal" Spacing="24">
-                    <FontIcon Glyph="&#xE90A;" FontSize="48" Foreground="#FF3B82F6" VerticalAlignment="Center"/>
-                    <StackPanel Spacing="8" VerticalAlignment="Center">
-                        <TextBlock Text="Join the Community" FontSize="20" FontWeight="Bold"/>
-                        <TextBlock Text="Can't find what you're looking for? Join our official Facebook Group to ask questions, share ideas, and get help from other developers." TextWrapping="Wrap" Opacity="0.8"/>
-                        <Button Content="Join Facebook Group" Click="OpenGuide_Click" Style="{StaticResource AccentButtonStyle}" Margin="0,8,0,0"/>
-                    </StackPanel>
+            <ScrollViewer x:Name="DetailScroller" Grid.Row="1" Padding="40,4,40,48">
+                <StackPanel MaxWidth="900" Spacing="2">
+                    <TextBlock x:Name="DetailTitle" FontSize="34" FontWeight="Bold" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="DetailSubtitle" FontSize="16" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,14"/>
+                    <StackPanel x:Name="DetailPanel" Spacing="10"/>
                 </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </Page>

@@ -23,6 +23,8 @@ public sealed partial class MarketplacePage : Page
 
     private async void Install_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.DataContext is MarketApp app)
         {
             // Prompt for target directory
@@ -42,6 +44,8 @@ public sealed partial class MarketplacePage : Page
             if (success) btn.IsEnabled = false;
             else btn.IsEnabled = true;
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     public class MarketApp

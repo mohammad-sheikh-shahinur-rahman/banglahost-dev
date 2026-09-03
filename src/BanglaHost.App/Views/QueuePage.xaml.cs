@@ -16,12 +16,20 @@ public sealed partial class QueuePage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void RefreshBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task RefreshAsync()
@@ -46,6 +54,8 @@ public sealed partial class QueuePage : Page
 
     private async void FlushQueue_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string queueName)
         {
             btn.IsEnabled = false;
@@ -53,5 +63,7 @@ public sealed partial class QueuePage : Page
             btn.IsEnabled = true;
             await RefreshAsync();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }

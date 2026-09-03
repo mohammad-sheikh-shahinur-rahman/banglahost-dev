@@ -42,7 +42,7 @@
                 </StackPanel>
             </Border>
             
-            <TextBlock Text="Thank you for your love and support! ??" HorizontalAlignment="Center" Opacity="0.6" Margin="0,20,0,0"/>
+            <TextBlock Text="Thank you for your love and support! 🙏" HorizontalAlignment="Center" Opacity="0.6" Margin="0,20,0,0"/>
         </StackPanel>
     </Grid>
 </Page>

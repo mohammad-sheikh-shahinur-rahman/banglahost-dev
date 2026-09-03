@@ -1,22 +1,87 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- Section headers -->
+  <data name="NavHdrOverview.Content" xml:space="preserve"><value>ওভারভিউ</value></data>
+  <data name="NavHdrDevelop.Content" xml:space="preserve"><value>ডেভেলপ</value></data>
+  <data name="NavHdrRuntimes.Content" xml:space="preserve"><value>রানটাইম</value></data>
+  <data name="NavHdrAutomation.Content" xml:space="preserve"><value>অটোমেশন</value></data>
+  <data name="NavHdrMonitoring.Content" xml:space="preserve"><value>মনিটরিং</value></data>
+  <data name="NavHdrExplore.Content" xml:space="preserve"><value>এক্সপ্লোর</value></data>
+  <data name="NavHdrDiagnostics.Content" xml:space="preserve"><value>ডায়াগনস্টিকস</value></data>
+  <data name="NavHdrTools.Content" xml:space="preserve"><value>টুলস</value></data>
+  <data name="NavHdrSupport.Content" xml:space="preserve"><value>সাপোর্ট</value></data>
+
+  <!-- Overview -->
   <data name="NavDashboard.Content" xml:space="preserve"><value>ড্যাশবোর্ড</value></data>
   <data name="NavServices.Content" xml:space="preserve"><value>সার্ভিসেস</value></data>
   <data name="NavSites.Content" xml:space="preserve"><value>সাইটসমূহ</value></data>
   <data name="NavSQLStudio.Content" xml:space="preserve"><value>এসকিউএল স্টুডিও</value></data>
   <data name="NavDatabases.Content" xml:space="preserve"><value>ডাটাবেস</value></data>
+
+  <!-- Develop -->
   <data name="NavTerminal.Content" xml:space="preserve"><value>টার্মিনাল</value></data>
   <data name="NavFiles.Content" xml:space="preserve"><value>ফাইলস</value></data>
   <data name="NavGit.Content" xml:space="preserve"><value>গিট</value></data>
   <data name="NavDatabaseExplorer.Content" xml:space="preserve"><value>ডাটাবেস এক্সপ্লোরার</value></data>
-  <data name="NavMailpit.Content" xml:space="preserve"><value>মেইলপিট (ইনবক্স)</value></data>
-  <data name="NavNode.Content" xml:space="preserve"><value>Node.js অ্যাপস</value></data>
-  <data name="NavPython.Content" xml:space="preserve"><value>Python অ্যাপস</value></data>
-  <data name="NavPhpManager.Content" xml:space="preserve"><value>পিএইচপি ম্যানেজার</value></data>
+
+  <!-- Runtimes -->
+  <data name="NavNode.Content" xml:space="preserve"><value>নোড (Node.js)</value></data>
+  <data name="NavPython.Content" xml:space="preserve"><value>পাইথন (Python)</value></data>
+  <data name="NavPhpManager.Content" xml:space="preserve"><value>পিএইচপি ভার্সন</value></data>
   <data name="NavPhpExt.Content" xml:space="preserve"><value>পিএইচপি এক্সটেনশন</value></data>
-  <data name="NavPhpIni.Content" xml:space="preserve"><value>php.ini এডিটর</value></data>
-  <data name="NavSSL.Content" xml:space="preserve"><value>লোকাল এসএসএল</value></data>
-  <data name="NavCron.Content" xml:space="preserve"><value>ক্রন/কিউ (Cron)</value></data>
+  <data name="NavPhpIni.Content" xml:space="preserve"><value>পিএইচপি আইএনআই (php.ini)</value></data>
+
+  <!-- Automation -->
+  <data name="NavSSL.Content" xml:space="preserve"><value>এসএসএল (SSL)</value></data>
+  <data name="NavDomains.Content" xml:space="preserve"><value>ডোমেইন</value></data>
+  <data name="NavDeploy.Content" xml:space="preserve"><value>ডেপ্লয়</value></data>
+  <data name="NavBackup.Content" xml:space="preserve"><value>ব্যাকআপ</value></data>
+  <data name="NavScheduler.Content" xml:space="preserve"><value>শিডিউলার</value></data>
+  <data name="NavCronManager.Content" xml:space="preserve"><value>ব্যাকগ্রাউন্ড ওয়ার্কার</value></data>
+  <data name="NavNpm.Content" xml:space="preserve"><value>এনপিএম স্ক্রিপ্ট</value></data>
+  <data name="NavEmailInbox.Content" xml:space="preserve"><value>ইমেইল ইনবক্স</value></data>
+  <data name="NavSecurity.Content" xml:space="preserve"><value>সিকিউরিটি</value></data>
+
+  <!-- Monitoring -->
+  <data name="NavLogs.Content" xml:space="preserve"><value>লগস</value></data>
+  <data name="NavNetwork.Content" xml:space="preserve"><value>নেটওয়ার্ক</value></data>
+  <data name="NavCache.Content" xml:space="preserve"><value>ক্যাশ</value></data>
+  <data name="NavQueue.Content" xml:space="preserve"><value>কিউ</value></data>
+  <data name="NavEmail.Content" xml:space="preserve"><value>ইমেইল</value></data>
+  <data name="NavDocker.Content" xml:space="preserve"><value>ডকার</value></data>
+  <data name="NavVsCode.Content" xml:space="preserve"><value>ভিএস কোড</value></data>
+  <data name="NavGithubActions.Content" xml:space="preserve"><value>গিটহাব অ্যাকশনস</value></data>
+  <data name="NavCfTunnel.Content" xml:space="preserve"><value>ক্লাউডফ্লেয়ার টানেল</value></data>
+
+  <!-- Explore -->
+  <data name="NavAi.Content" xml:space="preserve"><value>এআই অ্যাসিস্ট্যান্ট</value></data>
+  <data name="NavMarketplace.Content" xml:space="preserve"><value>মার্কেটপ্লেস</value></data>
+  <data name="NavBlueprint.Content" xml:space="preserve"><value>ব্লুপ্রিন্ট</value></data>
+
+  <!-- Diagnostics -->
+  <data name="NavProfiler.Content" xml:space="preserve"><value>প্রোফাইলার</value></data>
+  <data name="NavSiteHealth.Content" xml:space="preserve"><value>সাইট হেলথ</value></data>
+  <data name="NavFileWatcher.Content" xml:space="preserve"><value>লগ ওয়াচার</value></data>
+
+  <!-- Tools -->
+  <data name="NavApiTester.Content" xml:space="preserve"><value>এপিআই টেস্টার</value></data>
+  <data name="NavReverseProxy.Content" xml:space="preserve"><value>রিভার্স প্রক্সি</value></data>
+  <data name="NavEnvManager.Content" xml:space="preserve"><value>.env ম্যানেজার</value></data>
+  <data name="NavPackageManager.Content" xml:space="preserve"><value>প্যাকেজ ম্যানেজার</value></data>
+  <data name="NavProjectAnalyzer.Content" xml:space="preserve"><value>প্রজেক্ট অ্যানালাইজার</value></data>
+
+  <!-- Support -->
+  <data name="NavAbout.Content" xml:space="preserve"><value>বাংলাহোস্ট সম্পর্কে</value></data>
+  <data name="NavContactSupport.Content" xml:space="preserve"><value>সাপোর্টে যোগাযোগ</value></data>
+  <data name="NavReportBug.Content" xml:space="preserve"><value>বাগ রিপোর্ট</value></data>
+  <data name="NavRequestFeature.Content" xml:space="preserve"><value>ফিচার অনুরোধ</value></data>
+  <data name="NavDocumentation.Content" xml:space="preserve"><value>ডকুমেন্টেশন</value></data>
+  <data name="NavDonate.Content" xml:space="preserve"><value>ডোনেট করুন</value></data>
+
+  <!-- Chrome -->
+  <data name="NavSearch.PlaceholderText" xml:space="preserve"><value>খুঁজুন…</value></data>
+
+  <!-- Settings -->
   <data name="SettingsLanguageTitle.Text" xml:space="preserve"><value>অ্যাপ্লিকেশন ভাষা (Language)</value></data>
   <data name="SettingsLanguageDesc.Text" xml:space="preserve"><value>অ্যাপ্লিকেশনের ভাষা পরিবর্তন করুন। পরিবর্তন দেখতে অ্যাপটি রিস্টার্ট করতে হবে।</value></data>
 </root>

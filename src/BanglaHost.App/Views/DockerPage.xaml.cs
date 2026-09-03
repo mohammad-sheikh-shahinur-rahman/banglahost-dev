@@ -17,12 +17,20 @@ public sealed partial class DockerPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void RefreshBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task RefreshAsync()
@@ -46,41 +54,59 @@ public sealed partial class DockerPage : Page
 
     private async void StartContainer_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string id)
         {
             await DockerService.StartContainerAsync(id);
             await RefreshAsync();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void StopContainer_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string id)
         {
             await DockerService.StopContainerAsync(id);
             await RefreshAsync();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void LogsContainer_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string id)
         {
             LogViewer.Text = await DockerService.GetContainerLogsAsync(id);
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void RemoveContainer_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string id)
         {
             await DockerService.RemoveContainerAsync(id);
             await RefreshAsync();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void PullAndRun_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var image = PullImageBox.Text.Trim();
         if (string.IsNullOrEmpty(image)) return;
 
@@ -97,5 +123,7 @@ public sealed partial class DockerPage : Page
         });
 
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }

@@ -48,8 +48,7 @@ public sealed partial class DatabaseExplorerPage : Page
         try
         {
             using var p = Process.Start(psi)!;
-            var outText = p.StandardOutput.ReadToEnd();
-            var errText = p.StandardError.ReadToEnd();
+            var _errT = p.StandardError.ReadToEndAsync(); var outText = p.StandardOutput.ReadToEnd(); var errText = _errT.Result;
             p.WaitForExit();
             File.Delete(tmpSql);
             return p.ExitCode == 0 ? outText : $"Error:\n{errText}";

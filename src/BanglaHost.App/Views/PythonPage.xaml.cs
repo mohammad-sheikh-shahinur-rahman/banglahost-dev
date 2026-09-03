@@ -47,12 +47,14 @@ public sealed partial class PythonPage : Page
         var ver = Tools.PythonVersion();
         InterpStatus.Text = installed
             ? $"Python {ver} installed"
-            : "Not installed � install a portable Python to run Python apps.";
+            : "Not installed — install a portable Python to run Python apps.";
         InstallPyBtn.Content = installed ? "Reinstall / update" : "Install Python";
     }
 
     private async void InstallPy_Click(object s, RoutedEventArgs e)
     {
+        try
+        {
         Busy.IsActive = true; InstallPyBtn.IsEnabled = false;
         var (_, output) = await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.Install("python"));
         Busy.IsActive = false; InstallPyBtn.IsEnabled = true;
@@ -61,6 +63,8 @@ public sealed partial class PythonPage : Page
             await Info("Couldn't install Python", string.IsNullOrWhiteSpace(output)
                 ? "The download didn't complete. Check Logs and try again."
                 : output.Trim());
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void RefreshApps()
@@ -69,7 +73,7 @@ public sealed partial class PythonPage : Page
         _allApps = PySite.List().Select(n =>
         {
             var c = PySite.Load(n);
-            var detail = $":{c?.Port}  �  {c?.Cmd}";
+            var detail = $":{c?.Port}  •  {c?.Cmd}";
             return new PyAppRow { Name = n, Detail = detail, Running = PySite.Running(n), Url = $"https://{n}.{tld}" };
         }).ToList();
         RenderApps();
@@ -93,7 +97,7 @@ public sealed partial class PythonPage : Page
         _appPage = Math.Clamp(_appPage, 0, pages - 1);
         var page = filtered.Skip(_appPage * size).Take(size).ToList();
         AppsList.ItemsSource = page;
-        EmptyApps.Text = _allApps.Count == 0 ? "No Python apps yet. Click �Add Python app�." : "No matches.";
+        EmptyApps.Text = _allApps.Count == 0 ? "No Python apps yet. Click “Add Python app”." : "No matches.";
         EmptyApps.Visibility = page.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         AppPager.Visibility = pages > 1 ? Visibility.Visible : Visibility.Collapsed;
         AppPageLabel.Text = $"Page {_appPage + 1} of {pages}";
@@ -120,13 +124,31 @@ public sealed partial class PythonPage : Page
     private async Task AppOp(Action a) { await EngineHost.Instance.Run(a); RefreshApps(); }
 
     private void OpenApp_Click(object s, RoutedEventArgs e)    { var u = Tag(s); if (u.Length > 0) Launch(u); }
-    private async void StartApp_Click(object s, RoutedEventArgs e)   { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteStart(n)); }
-    private async void StopApp_Click(object s, RoutedEventArgs e)    { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteStop(n)); }
-    private async void RestartApp_Click(object s, RoutedEventArgs e) { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteRestart(n)); }
-    private async void RemoveApp_Click(object s, RoutedEventArgs e)  { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteRemove(n)); }
+    private async void StartApp_Click(object s, RoutedEventArgs e)   {
+        try
+        { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteStart(n));     } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+    private async void StopApp_Click(object s, RoutedEventArgs e)    {
+        try
+        { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteStop(n));     } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+    private async void RestartApp_Click(object s, RoutedEventArgs e) {
+        try
+        { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteRestart(n));     } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
+    private async void RemoveApp_Click(object s, RoutedEventArgs e)  {
+        try
+        { var n = Tag(s); await AppOp(() => EngineHost.Instance.Engine.PySiteRemove(n));     } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+    }
 
     private async void PipApp_Click(object s, RoutedEventArgs e)
     {
+        try
+        {
         var n = Tag(s);
         Busy.IsActive = true;
         var (_, output) = await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.PySitePip(n));
@@ -134,14 +156,16 @@ public sealed partial class PythonPage : Page
         var body = string.IsNullOrWhiteSpace(output) ? "Done." : output.Trim();
         if (body.Length > 4000) body = body[^4000..];
         if (this.Content == null || this.XamlRoot == null) return;
-        await new ContentDialog { Title = $"pip install � {n}", Content = new ScrollViewer { Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("Consolas") }, MaxHeight = 420 }, CloseButtonText = "OK", XamlRoot = this.XamlRoot }.ShowAsync();
+        await new ContentDialog { Title = $"pip install — {n}", Content = new ScrollViewer { Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap, FontFamily = new FontFamily("Consolas") }, MaxHeight = 420 }, CloseButtonText = "OK", XamlRoot = this.XamlRoot }.ShowAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void FolderApp_Click(object s, RoutedEventArgs e)   { var d = PySite.DirOf(Tag(s)); if (d.Length > 0) Launch(d); }
     private void LogsApp_Click(object s, RoutedEventArgs e)
     {
         var f = System.IO.Path.Combine(Paths.Logs, $"pysite-{Tag(s)}.log");
-        if (System.IO.File.Exists(f)) Launch(f); else _ = Info("Logs", "No log yet � start the app first.");
+        if (System.IO.File.Exists(f)) Launch(f); else _ = Info("Logs", "No log yet — start the app first.");
     }
     private void EditorApp_Click(object s, RoutedEventArgs e)
     {
@@ -166,6 +190,8 @@ public sealed partial class PythonPage : Page
 
     private async void AddApp_Click(object s, RoutedEventArgs e)
     {
+        try
+        {
         // Python must be installed for the app to run / venv to build  offer to install it first.
         if (!Tools.PythonInstalled)
         {
@@ -210,6 +236,8 @@ public sealed partial class PythonPage : Page
         await EngineHost.Instance.Run(() => EngineHost.Instance.Engine.PySiteAdd(nm, d, cm, p, venv.IsOn));
         Busy.IsActive = false;
         RefreshApps();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }
 }

@@ -63,6 +63,8 @@ public sealed partial class DashboardPage : Page
 
     private async void Refresh()
     {
+        try
+        {
         Snapshot snap;
         try { snap = await EngineHost.Instance.Snapshot(); } catch { return; }
 
@@ -106,9 +108,9 @@ public sealed partial class DashboardPage : Page
         }
         CpuSpark.Points = pts;
         var (mu, mt, mp) = SystemMetrics.Memory(); MemText.Text = $"{mu:0.0} / {mt:0.0} GB";
-        try { MemBar.Value = mp; } catch { }   // WinUI 3 ProgressBar can ACCESS_VIOLATE mid-layout
+        DispatcherQueue?.TryEnqueue(() => { try { MemBar.Value = mp; } catch { } }); // WinUI 3 ProgressBar can ACCESS_VIOLATE mid-layout
         var (du, dt, dp) = SystemMetrics.Disk(); DiskText.Text = $"{du:0} / {dt:0} GB";
-        try { DiskBar.Value = dp; } catch { }
+        DispatcherQueue?.TryEnqueue(() => { try { DiskBar.Value = dp; } catch { } });
         var (down, up) = SystemMetrics.Network();
         NetDown.Text = $"Down  {Rate(down)}"; NetUp.Text = $"Up  {Rate(up)}";
 
@@ -178,6 +180,8 @@ public sealed partial class DashboardPage : Page
         SetTool(snap, "adminer",    AdmToggle, AdmOpen, AdmStatus, ref _admUrl);
         SetTool(snap, "mailpit",    MailToggle, MailOpen, MailStatus, ref _mailUrl);
         _loading = false;
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private static void SetTool(Snapshot snap, string name, ToggleSwitch toggle, Button open, TextBlock status, ref string url)

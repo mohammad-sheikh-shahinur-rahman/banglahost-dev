@@ -20,8 +20,12 @@ public sealed partial class EnvManagerPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         var snap = await EngineHost.Instance.Snapshot();
         SiteList.ItemsSource = snap.Sites.Select(s => s.Root).Where(r => !string.IsNullOrWhiteSpace(r)).Distinct().ToList();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void SiteList_SelectionChanged(object sender, SelectionChangedEventArgs e)

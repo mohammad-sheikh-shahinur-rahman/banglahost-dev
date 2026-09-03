@@ -31,7 +31,7 @@ public static class PgServer
             RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         var p = Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
         p.WaitForExit();
         return (p.ExitCode, outp);
     }
@@ -92,8 +92,7 @@ public static class PgDatabase
         };
         psi.Environment["PGPASSWORD"] = "";   // trust auth
         var p = Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd();
-        var err = p.StandardError.ReadToEnd();
+        var _errT = p.StandardError.ReadToEndAsync(); var outp = p.StandardOutput.ReadToEnd(); var err = _errT.Result;
         p.WaitForExit();
         return (p.ExitCode, outp + err);
     }

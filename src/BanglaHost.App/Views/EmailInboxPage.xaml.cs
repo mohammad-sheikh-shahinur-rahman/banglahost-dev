@@ -29,12 +29,20 @@ public sealed partial class EmailInboxPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await LoadEmails();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void Refresh_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await LoadEmails();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void DeleteAll_Click(object sender, RoutedEventArgs e)
@@ -92,6 +100,8 @@ public sealed partial class EmailInboxPage : Page
 
     private async void EmailList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        try
+        {
         if (EmailList.SelectedItem is MailpitMessage msg)
         {
             try
@@ -122,5 +132,7 @@ public sealed partial class EmailInboxPage : Page
             }
             catch { }
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }

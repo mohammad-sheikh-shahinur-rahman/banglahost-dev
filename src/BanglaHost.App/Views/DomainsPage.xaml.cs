@@ -34,6 +34,8 @@ public sealed partial class DomainsPage : Page
 
     private async void AddHostBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var ip = HostIpBox.Text.Trim();
         var domain = HostDomainBox.Text.Trim();
         if (string.IsNullOrEmpty(ip) || string.IsNullOrEmpty(domain)) return;
@@ -51,10 +53,14 @@ public sealed partial class DomainsPage : Page
             HostDomainBox.Text = "";
             LoadHosts();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void RemoveHostBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string domain)
         {
             btn.IsEnabled = false;
@@ -68,10 +74,14 @@ public sealed partial class DomainsPage : Page
             
             if (success) LoadHosts();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void CheckDnsBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var domain = CheckDomainBox.Text.Trim();
         if (string.IsNullOrEmpty(domain)) return;
 
@@ -82,10 +92,14 @@ public sealed partial class DomainsPage : Page
         
         DnsResult.Text = res;
         CheckDnsBtn.IsEnabled = true;
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void UpdateCfBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var token = CfTokenBox.Text.Trim();
         var zone = CfZoneBox.Text.Trim();
         var domain = CfDomainBox.Text.Trim();
@@ -104,6 +118,8 @@ public sealed partial class DomainsPage : Page
 
         CfResult.Text = success ? "DNS updated successfully!" : "Failed to update DNS (check token and zone ID).";
         UpdateCfBtn.IsEnabled = true;
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }
 

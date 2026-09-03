@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
 using BanglaHost.App.Services;
@@ -41,20 +41,30 @@ public sealed partial class SettingsPage : Page
         AutoUpdateToggle.IsOn = cfg.AutoUpdate;
         DashSizeBox.Value     = cfg.DashboardPageSize;
         SitesSizeBox.Value    = cfg.SitesPageSize;
-        Version.Text = $"BanglaHost for Windows · {Updater.CurrentVersion}";
-        LangBox.SelectedIndex = Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride == "bn-BD" ? 1 : 0;
+        Version.Text = $"BanglaHost for Windows Â· {Updater.CurrentVersion}";
+                try {
+            LangBox.SelectedIndex = Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride == "bn-BD" ? 1 : 0;
+        } catch {
+            LangBox.SelectedIndex = Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride == "bn-BD" ? 1 : 0;
+        }
 
         _orig = (cfg.Tld, cfg.HttpPort, cfg.HttpsPort);
         SaveStatus.Text = "";
         _loading = false;
     }
 
-        private void LangBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+            private void LangBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || LangBox.SelectedItem is not ComboBoxItem item) return;
         var lang = item.Tag?.ToString() ?? "en-US";
-        Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang;
-        // Require restart notification can be handled later
+        try { Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang; } catch { }
+        try { Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = lang; } catch { }
+        
+        var cfg = BanglaHost.Core.Config.Load();
+        cfg.Language = lang;
+        cfg.Save();
+        
+        Microsoft.Windows.AppLifecycle.AppInstance.Restart("");
     }
 
     private async void Save_Click(object sender, RoutedEventArgs e)
@@ -213,7 +223,7 @@ public sealed partial class SettingsPage : Page
                 var dlg = new ContentDialog
                 {
                     Title = $"Update available — BanglaHost {r.Latest}",
-                    Content = $"A new version is on the Microsoft Store.\n\nYou have {Updater.CurrentVersion} · latest is {r.Latest}.\n\nOpen the Store to install the update.",
+                    Content = $"A new version is on the Microsoft Store.\n\nYou have {Updater.CurrentVersion} Â· latest is {r.Latest}.\n\nOpen the Store to install the update.",
                     PrimaryButtonText = "Open Microsoft Store", CloseButtonText = "Later",
                     DefaultButton = ContentDialogButton.Primary, XamlRoot = this.XamlRoot,
                 };
@@ -231,4 +241,5 @@ public sealed partial class SettingsPage : Page
 }
 
 }
+
 

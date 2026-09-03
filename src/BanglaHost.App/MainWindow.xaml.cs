@@ -19,6 +19,10 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        // Bangla mode: translate every page's static text as it loads (the sidebar itself is
+        // handled separately by MRT via x:Uid). No-op in English mode.
+        ContentFrame.Navigated += ContentFrame_Navigated;
+
         var icon = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico");
         if (System.IO.File.Exists(icon)) { try { AppWindow.SetIcon(icon); } catch { } }
 
@@ -132,7 +136,7 @@ public sealed partial class MainWindow : Window
             var still = EngineHost.Instance.Engine.MissingCore();
             await new ContentDialog
             {
-                Title = still.Count == 0 ? "BanglaHost is ready ðŸŽ‰" : "Setup didn't fully finish",
+                Title = still.Count == 0 ? "BanglaHost is ready \U0001F389" : "Setup didn't fully finish",
                 Content = still.Count == 0
                     ? "All set! Head to the Sites tab and add your first site."
                     : "These couldn't be installed:\n\n" + string.Join("\n", still.Select(m => "        •  " + m.label)) +
@@ -228,6 +232,37 @@ public sealed partial class MainWindow : Window
         try { _tray.Dispose(); } catch { }
     }
 
+    // ── Bangla localization: translate each content page as it appears ──────
+    private void ContentFrame_Navigated(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        if (!Localizer.IsActive) return;
+        if (e.Content is not FrameworkElement page) return;
+
+        // Translate now (covers a page whose tree is already realized) and again on Loaded
+        // (first realization), then a few delayed passes for content that services populate
+        // asynchronously (e.g. "No sites yet.", status labels).
+        Localizer.Localize(page);
+        page.Loaded += Page_Loaded_Localize;
+    }
+
+    private void Page_Loaded_Localize(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement page) return;
+        page.Loaded -= Page_Loaded_Localize;
+        Localizer.Localize(page);
+        _ = RewalkAfterAsync(page);
+    }
+
+    private static async System.Threading.Tasks.Task RewalkAfterAsync(FrameworkElement page)
+    {
+        foreach (var ms in new[] { 250, 800, 1800 })
+        {
+            await System.Threading.Tasks.Task.Delay(ms);
+            try { if (page.XamlRoot != null) Localizer.Localize(page); }
+            catch { }
+        }
+    }
+
     private void Nav_Loaded(object sender, RoutedEventArgs e)
     {
         // First real menu entry (skip the "Overview" header)
@@ -275,6 +310,8 @@ public sealed partial class MainWindow : Window
 
     private async void Nav_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        try
+        {
         if (args.IsSettingsSelected) { ContentFrame.Navigate(typeof(SettingsPage)); return; }
         if (args.SelectedItemContainer is NavigationViewItem { Tag: string tag })
         {
@@ -349,6 +386,8 @@ public sealed partial class MainWindow : Window
                 try { await dlg.ShowAsync(); } catch { }
             }
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }
 }

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace BanglaHost.Core;
 
 /// <summary>
-/// Public sharing via Cloudflare quick tunnels (no account needed) � the analog of
+/// Public sharing via Cloudflare quick tunnels (no account needed) — the analog of
 /// the mac engine's <c>tunnel</c>. cloudflared writes to a log file (via cmd redirect
 /// so it survives the CLI exiting); we poll it for the https://*.trycloudflare.com URL.
 /// </summary>
@@ -43,7 +43,7 @@ public static class Tunnel
 
     /// <summary>Read a file that another process holds open for writing (cloudflared's log).
     /// The default File.ReadAllText opens with FileShare.Read, which on Windows throws because
-    /// cloudflared (via the `cmd > log` redirect) holds the log open for writing � so the URL is
+    /// cloudflared (via the `cmd > log` redirect) holds the log open for writing — so the URL is
     /// never seen and the tunnel reports "no URL yet". Opening with FileShare.ReadWrite fixes it.
     /// (POSIX allows the concurrent read, which is why the mac engine never hit this.)</summary>
     private static string ReadShared(string path)
@@ -61,7 +61,7 @@ public static class Tunnel
     public static (bool ok, string msg) Start(string name, string domain, string origin)
     {
         var cf = Tools.CloudflaredExe();
-        if (cf is null) return (false, "cloudflared not installed � banglahost tunnel install");
+        if (cf is null) return (false, "cloudflared not installed — banglahost tunnel install");
         if (Running(name))
         {
             // If cloudflared is genuinely still up AND we have a URL from the previous run,

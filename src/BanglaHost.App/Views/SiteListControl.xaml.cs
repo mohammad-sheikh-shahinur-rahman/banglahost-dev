@@ -180,8 +180,8 @@ public sealed partial class SiteListControl : UserControl
         var editor = FindEditor();
         if (editor is null)
         {
-            Launch(r.Root);   // no editor � at least open the folder
-            await Info("No code editor found", "Couldn't find VS Code, Cursor, Sublime Text or Notepad++. Opened the site folder instead � install one of those to use this.");
+            Launch(r.Root);   // no editor — at least open the folder
+            await Info("No code editor found", "Couldn't find VS Code, Cursor, Sublime Text or Notepad++. Opened the site folder instead — install one of those to use this.");
             return;
         }
         try { using var p = Process.Start(new ProcessStartInfo { FileName = editor, Arguments = $"\"{r.Root}\"", UseShellExecute = true }); }
@@ -190,7 +190,7 @@ public sealed partial class SiteListControl : UserControl
     catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
-    /// <summary>Open a terminal at the site folder � Windows Terminal if present, else PowerShell, else cmd.</summary>
+    /// <summary>Open a terminal at the site folder — Windows Terminal if present, else PowerShell, else cmd.</summary>
     private void Terminal_Click(object s, RoutedEventArgs e)
     {
         if (Row(Tag(s)) is not { } r || r.Root.Length == 0) return;
@@ -248,6 +248,8 @@ public sealed partial class SiteListControl : UserControl
 
     private async void Tools_Click(object s, RoutedEventArgs e)
     {
+        try
+        {
         var name = Tag(s);
         if (Row(name) is not { } r) return;
         var root = r.Root;
@@ -337,6 +339,8 @@ public sealed partial class SiteListControl : UserControl
             XamlRoot = this.XamlRoot
         };
         await BanglaHost.App.Services.DialogQueue.ShowAsync(dlg);
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void Toggle_Click(object s, RoutedEventArgs e)
@@ -562,7 +566,7 @@ public sealed partial class SiteListControl : UserControl
         {
             TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0),
             Foreground = new SolidColorBrush(Red), Visibility = Visibility.Collapsed,
-            Text = $"Permanently deletes (cannot be undone):\n� Files:  {t.root}\n� Database:  {t.db}",
+            Text = $"Permanently deletes (cannot be undone):\n• Files:  {t.root}\n• Database:  {t.db}",
         };
         var purge = new CheckBox { Content = "Also delete the site files and drop its database" };
         purge.Checked   += (_, _) => warn.Visibility = Visibility.Visible;

@@ -70,7 +70,7 @@ public static class PySite
         var venv = Path.Combine(dir, ".venv");
         if (Directory.Exists(Path.Combine(venv, "Scripts"))) return (true, "venv already exists");
         var psi = NewPsi($"\"{py}\" -m venv \"{venv}\"", dir, capture: true);
-        try { var p = Process.Start(psi)!; var o = p.StandardOutput.ReadToEnd(); var e = p.StandardError.ReadToEnd(); p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
+        try { var p = Process.Start(psi)!; var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result; p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
         catch (Exception ex) { return (false, ex.Message); }
     }
 
@@ -117,10 +117,14 @@ public static class PySite
         };
         SetEnv(psi, cfg);
         Process? proc;
-        try { proc = Process.Start(psi); }
-        catch (Exception ex) { return (false, $"failed to start the app: {ex.Message}"); }
-        if (proc is null) return (false, "failed to spawn the process");
-        JobManager.Add(proc);
+        try { proc = Process.Start(psi); }
+
+        catch (Exception ex) { return (false, $"failed to start the app: {ex.Message}"); }
+
+        if (proc is null) return (false, "failed to spawn the process");
+
+        JobManager.Add(proc);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile(name), JsonSerializer.Serialize(new { pid = proc.Id, port = cfg.Port }));
         for (var i = 0; i < 16 && !PortOpen(cfg.Port); i++) System.Threading.Thread.Sleep(500);
@@ -162,7 +166,7 @@ public static class PySite
         var inner = pip is not null ? $"\"{pip}\" install {target}" : $"python -m pip install {target}";
         var psi = NewPsi(inner, cfg.Dir, capture: true);
         SetEnv(psi, cfg);
-        try { var p = Process.Start(psi)!; var o = p.StandardOutput.ReadToEnd(); var e = p.StandardError.ReadToEnd(); p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
+        try { var p = Process.Start(psi)!; var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result; p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
         catch (Exception ex) { return (false, ex.Message); }
     }
 

@@ -19,16 +19,24 @@ public sealed partial class NetworkPage : Page
 
     private async void OnPerfTimerTick(object? sender, object e)
     {
+        try
+        {
         await RefreshPerf();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         _perfTimer.Tick += OnPerfTimerTick;
         RefreshPorts_Click(this, new RoutedEventArgs());
         InterfaceList.ItemsSource = NetworkInspector.GetInterfaceStats();
         await RefreshPerf();
         _perfTimer.Start();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)

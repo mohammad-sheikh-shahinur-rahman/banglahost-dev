@@ -37,6 +37,8 @@ public sealed partial class EmailPage : Page
 
     private async void TestSmtpBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var to = TestToBox.Text.Trim();
         if (string.IsNullOrEmpty(to)) { SmtpStatus.Text = "Enter a test recipient."; return; }
 
@@ -57,12 +59,18 @@ public sealed partial class EmailPage : Page
         
         TestSmtpBtn.IsEnabled = true;
         EmailLogList.ItemsSource = EmailService.GetLog();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void StartMailhog_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         Action<string> log = msg => DispatcherQueue?.TryEnqueue(() => MailhogStatus.Text = msg);
         await Task.Run(() => EmailService.StartMailhogAsync(log));
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void StopMailhog_Click(object sender, RoutedEventArgs e)

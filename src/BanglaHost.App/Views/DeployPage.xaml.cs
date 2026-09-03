@@ -108,15 +108,21 @@ public sealed partial class DeployPage : Page
 
     private async void BrowseSource_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
             if (folderPath != null)
             {
                 SourceBox.Text = folderPath;
             }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void DeployBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         SaveBtn_Click(sender, e); // ensure saved
         if (_currentProfile == null) return;
 
@@ -133,6 +139,8 @@ public sealed partial class DeployPage : Page
         await Task.Run(() => DeployService.DeployAsync(_currentProfile, log));
 
         DispatcherQueue?.TryEnqueue(() => DeployBtn.IsEnabled = true);
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }
 

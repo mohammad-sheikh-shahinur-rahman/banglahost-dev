@@ -26,7 +26,7 @@ public sealed class SvcRow
     public bool CanStart => Installed && !Running && Manageable;
     public bool IsPhp => Key.StartsWith("php");
     public Visibility PhpVis => IsPhp ? Visibility.Visible : Visibility.Collapsed;
-    // mkcert / fnm are one-shot tools, not daemons � they have no run state, so don't show
+    // mkcert / fnm are one-shot tools, not daemons — they have no run state, so don't show
     // Start/Stop or the ★ auto-start, and treat "installed" as ready (green).
     public Visibility ManageVis => Manageable ? Visibility.Visible : Visibility.Collapsed;
     public bool ReadyTool => Installed && !Manageable;
@@ -37,12 +37,13 @@ public sealed class SvcRow
         get
         {
             var st = !Installed ? "not installed" : !Manageable ? "installed" : Running ? "running" : "stopped";
-            return Version.Length > 0 ? $"{Version}  �  {st}" : st;
+            st = Localizer.T(st);
+            return Version.Length > 0 ? $"{Version}  •  {st}" : st;
         }
     }
 }
 
-/// <summary>A titled group of services (PHP, Web servers, �).</summary>
+/// <summary>A titled group of services (PHP, Web servers, …).</summary>
 public sealed class SvcGroup
 {
     public required string Title { get; init; }
@@ -92,7 +93,7 @@ public sealed partial class ServicesPage : Page
         OpBar.IsIndeterminate = op.Running && op.Progress < 0;
         // WinUI 3 ProgressBar::SetProgress can ACCESS_VIOLATE during layout/teardown.
         try { OpBar.Value = op.Progress < 0 ? 0 : op.Progress; } catch { }
-        OpPct.Text = op.Running && op.Progress >= 0 ? $"{op.Progress:0}%" : op.Running ? "working�" : op.Success ? "done" : "failed";
+        OpPct.Text = op.Running && op.Progress >= 0 ? $"{op.Progress:0}%" : op.Running ? Localizer.T("working…") : op.Success ? Localizer.T("done") : Localizer.T("failed");
         OpDismiss.Visibility = op.Running ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -119,7 +120,7 @@ public sealed partial class ServicesPage : Page
         Groups.ItemsSource = Order
             .Select(o => new SvcGroup
             {
-                Title = o.title,
+                Title = Localizer.T(o.title),
                 Rows = rows.Where(r => BanglaHost.Core.Services.RoleOf(r.Key) == o.role).ToList(),
             })
             .Where(g => g.Rows.Count > 0)
@@ -129,7 +130,7 @@ public sealed partial class ServicesPage : Page
         catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
-    private static string InstallToken(string key) => key;   // "php@8.4" / "nginx" / � pass through
+    private static string InstallToken(string key) => key;   // "php@8.4" / "nginx" / … pass through
 
     private void AutoStar_Click(object sender, RoutedEventArgs e)
     {

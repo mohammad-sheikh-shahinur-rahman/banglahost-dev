@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "BanglaHost.Core/1.4.8.0": {
+      "BanglaHost.Core/1.0.35": {
         "runtime": {
           "BanglaHost.Core.dll": {}
         }
@@ -14,7 +14,7 @@
     }
   },
   "libraries": {
-    "BanglaHost.Core/1.4.8.0": {
+    "BanglaHost.Core/1.0.35": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

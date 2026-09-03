@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Page
     x:Class="BanglaHost.App.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -6,7 +6,7 @@
 
     <ScrollViewer>
         <StackPanel Padding="28,24,28,28" Spacing="18" MaxWidth="700" HorizontalAlignment="Left">
-            <!-- ════ Header ════ -->
+            <!-- â•â•â•â• Header â•â•â•â• -->
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <Border Width="36" Height="36" CornerRadius="10" Background="{StaticResource BhGradientBrush}">
                     <FontIcon Glyph="&#xE713;" FontSize="16" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -23,11 +23,11 @@
                     <TextBlock x:Uid="SettingsLanguageDesc" Opacity="0.7"/>
                     <ComboBox x:Name="LangBox" Width="200" CornerRadius="8" SelectionChanged="LangBox_SelectionChanged">
                         <ComboBoxItem Content="English" Tag="en-US"/>
-                        <ComboBoxItem Content="?????" Tag="bn-BD"/>
+                        <ComboBoxItem Content="বাংলা" Tag="bn-BD"/>
                     </ComboBox>
                 </StackPanel>
             </Border>
-            <!-- ? Domains, ports & defaults ════ -->
+            <!-- ? Domains, ports & defaults â•â•â•â• -->
             <Border Style="{StaticResource PremiumCard}">
                 <StackPanel Spacing="14">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -49,13 +49,13 @@
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <TextBox x:Name="RootBox" Header="Sites root" Grid.Column="0" CornerRadius="8"/>
-                        <Button Content="Browse…" Grid.Column="1" Click="BrowseRoot_Click" VerticalAlignment="Bottom" CornerRadius="16"/>
+                        <Button Content="Browse..." Grid.Column="1" Click="BrowseRoot_Click" VerticalAlignment="Bottom" CornerRadius="16"/>
                     </Grid>
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="120"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <TextBlock Text="Data directory" Opacity="0.7" VerticalAlignment="Center"/>
                         <TextBlock x:Name="HomeText" Grid.Column="1" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                        <Button Content="Change…" Grid.Column="2" Click="MoveData_Click" VerticalAlignment="Center" CornerRadius="16"/>
+                        <Button Content="Change..." Grid.Column="2" Click="MoveData_Click" VerticalAlignment="Center" CornerRadius="16"/>
                     </Grid>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button x:Name="SaveBtn" Content="Save" Click="Save_Click" Style="{StaticResource PillButton}"/>
@@ -67,7 +67,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- ════ App behavior ════ -->
+            <!-- â•â•â•â• App behavior â•â•â•â• -->
             <Border Style="{StaticResource PremiumCard}">
                 <StackPanel Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="8">
@@ -99,3 +99,6 @@
         </StackPanel>
     </ScrollViewer>
 </Page>
+
+
+

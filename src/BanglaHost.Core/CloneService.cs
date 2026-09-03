@@ -127,18 +127,44 @@ public static class CloneService
         var tempSql = Path.Combine(Path.GetTempPath(), $"{srcDb}_clone_{Guid.NewGuid():N}.sql");
         var user = "root";
         var pass = cfg.RootPassword;
-        var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P 3306 -h 127.0.0.1";
+
+        Action<ProcessStartInfo> addAuth = (psi) => {
+            psi.ArgumentList.Add("-u"); psi.ArgumentList.Add(user);
+            if (!string.IsNullOrEmpty(pass)) psi.ArgumentList.Add($"-p{pass}");
+            psi.ArgumentList.Add("-P"); psi.ArgumentList.Add("3306");
+            psi.ArgumentList.Add("-h"); psi.ArgumentList.Add("127.0.0.1");
+        };
 
         try
         {
-            // 1. Dump
-            try { using (var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/c \"\"{dumpExe}\" --opt {auth} {srcDb} --result-file=\"{tempSql}\"\"", UseShellExecute = false, CreateNoWindow = true })) { p?.WaitForExit(); } } catch { }
+            // 1. Dump safely
+            var psiDump = new ProcessStartInfo { FileName = dumpExe, UseShellExecute = false, CreateNoWindow = true };
+            psiDump.ArgumentList.Add("--opt");
+            addAuth(psiDump);
+            psiDump.ArgumentList.Add(srcDb);
+            psiDump.ArgumentList.Add($"--result-file={tempSql}");
+            using (var p = Process.Start(psiDump)) { p?.WaitForExit(); if (p?.ExitCode != 0) throw new BhException($"Dump failed for {srcDb}"); }
             
-            // 2. Create new DB
-            try { using (var p = Process.Start(new ProcessStartInfo { FileName = mysqlExe, Arguments = $"{auth} -e \"CREATE DATABASE IF NOT EXISTS \\\"{destDb}\\\";\"", UseShellExecute = false, CreateNoWindow = true })) { p?.WaitForExit(); } } catch { }
+            // 2. Create new DB safely
+            var psiCreate = new ProcessStartInfo { FileName = mysqlExe, UseShellExecute = false, CreateNoWindow = true };
+            addAuth(psiCreate);
+            psiCreate.ArgumentList.Add("-e");
+            psiCreate.ArgumentList.Add($"CREATE DATABASE IF NOT EXISTS `{destDb}`;");
+            using (var p = Process.Start(psiCreate)) { p?.WaitForExit(); if (p?.ExitCode != 0) throw new BhException($"Failed to create database {destDb}"); }
             
-            // 3. Import
-            try { using (var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/c \"\"{mysqlExe}\" {auth} {destDb} < \"{tempSql}\"\"", UseShellExecute = false, CreateNoWindow = true })) { p?.WaitForExit(); } } catch { }
+            // 3. Import safely via Stream
+            var psiImport = new ProcessStartInfo { FileName = mysqlExe, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true };
+            addAuth(psiImport);
+            psiImport.ArgumentList.Add(destDb);
+            using (var p = Process.Start(psiImport))
+            {
+                if (p != null)
+                {
+                    using (var fs = File.OpenRead(tempSql)) { fs.CopyTo(p.StandardInput.BaseStream); p.StandardInput.Close(); }
+                    p.WaitForExit();
+                    if (p.ExitCode != 0) throw new BhException($"Import failed for {destDb}");
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -146,7 +172,7 @@ public static class CloneService
         }
         finally
         {
-            if (File.Exists(tempSql)) File.Delete(tempSql);
+            if (File.Exists(tempSql)) try { File.Delete(tempSql); } catch { }
         }
     }
 }

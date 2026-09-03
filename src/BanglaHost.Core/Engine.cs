@@ -896,7 +896,7 @@ public sealed class Engine
             WorkingDirectory = cwd ?? Path.GetDirectoryName(exe)!,
         };
         var p = System.Diagnostics.Process.Start(psi)!;
-        var outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
         p.WaitForExit();
         return (p.ExitCode, outp);
     }
@@ -1256,7 +1256,7 @@ public sealed class Engine
         };
         psi.Environment["FNM_DIR"] = nodeDir;
         var p = System.Diagnostics.Process.Start(psi)!;
-        var outp = (p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd()).TrimEnd();
+        var outp = (((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))()).TrimEnd();
         p.WaitForExit();
         if (outp.Length > 0) Out(outp);
         if (p.ExitCode != 0) throw new BhException($"fnm {fnmArgs} failed");
@@ -1277,7 +1277,7 @@ public sealed class Engine
         };
         psi.Environment["FNM_DIR"] = nodeDir;
         string outp;
-        try { var p = System.Diagnostics.Process.Start(psi)!; outp = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd(); p.WaitForExit(); }
+        try { var p = System.Diagnostics.Process.Start(psi)!; outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))(); p.WaitForExit(); }
         catch { return Array.Empty<(string, bool)>(); }
         var list = new List<(string, bool)>();
         foreach (var line in outp.Replace("\r", "").Split('\n'))

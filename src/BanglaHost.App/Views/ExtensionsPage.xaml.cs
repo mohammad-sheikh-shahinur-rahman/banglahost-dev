@@ -58,6 +58,8 @@ public sealed partial class ExtensionsPage : Page
 
     private async void Ext_Toggled(object s, RoutedEventArgs e)
     {
+        try
+        {
         if (_loading || s is not ToggleSwitch ts || ts.DataContext is not ExtRow row) return;
         
         RestartRing.IsActive = true;
@@ -75,6 +77,8 @@ public sealed partial class ExtensionsPage : Page
         ts.IsEnabled = true;
         RestartRing.IsActive = false;
         RestartRing.Visibility = Visibility.Collapsed;
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     public class ExtRow

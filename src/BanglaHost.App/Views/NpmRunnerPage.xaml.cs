@@ -30,7 +30,11 @@ public sealed partial class NpmRunnerPage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await LoadProjects();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task LoadProjects()
@@ -82,6 +86,8 @@ public sealed partial class NpmRunnerPage : Page
 
     private async void Run_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string scriptName)
         {
             StopProcess();
@@ -124,6 +130,8 @@ public sealed partial class NpmRunnerPage : Page
             catch (Exception ex) { OutputBox.Text += $"\nError: {ex.Message}"; }
             finally { StopBtn.IsEnabled = false; _runningProcess = null; }
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void Stop_Click(object sender, RoutedEventArgs e)

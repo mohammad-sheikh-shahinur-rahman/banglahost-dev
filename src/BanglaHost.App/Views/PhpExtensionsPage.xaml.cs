@@ -119,6 +119,8 @@ public sealed partial class PhpExtensionsPage : Page
 
     private async void ExtToggle_Toggled(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is ToggleSwitch ts && ts.Tag is string extName)
         {
             var enable = ts.IsOn;
@@ -131,6 +133,8 @@ public sealed partial class PhpExtensionsPage : Page
                 await Php.SetExtension(_currentVersion, extName, enable, msg => EngineHost.Instance.Append($"    {msg}"));
             });
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }
 

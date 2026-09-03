@@ -16,7 +16,11 @@ public sealed partial class CachePage : Page
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
+        try
+        {
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task RefreshAsync()
@@ -32,34 +36,54 @@ public sealed partial class CachePage : Page
 
     private async void RefreshKeys_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         KeyList.ItemsSource = await CacheService.GetRedisKeysAsync("*");
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void SearchKeys_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var pattern = KeyPatternBox.Text.Trim();
         if (string.IsNullOrEmpty(pattern)) pattern = "*";
         KeyList.ItemsSource = await CacheService.GetRedisKeysAsync(pattern);
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void FlushAll_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await CacheService.FlushRedisCacheAsync();
         await RefreshAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void DeleteKey_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button btn && btn.Tag is string key)
         {
             await CacheService.DeleteRedisKeyAsync(key);
             await RefreshAsync();
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void ResetOpcache_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         await CacheService.ResetOpcacheAsync();
         OpcacheInfo.Text = await CacheService.GetOpcacheStatusAsync();
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 }

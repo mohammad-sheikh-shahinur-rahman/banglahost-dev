@@ -18,12 +18,16 @@ public sealed partial class ProjectDetectionPage : Page
 
     private async void BrowseBtn_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var folderPath = await BanglaHost.App.Services.Picker.FolderAsync();
         if (folderPath != null)
         {
             PathBox.Text = folderPath;
             AnalyzeBtn_Click(sender, e);
         }
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void AnalyzeBtn_Click(object sender, RoutedEventArgs e)

@@ -93,10 +93,14 @@ public static class NodeSite
         psi.Environment["PORT"] = p.Port.ToString();
 
         Process? proc;
-        try { proc = Process.Start(psi); }
-        catch (Exception) { return false; }
-        if (proc is null) return false;
-        JobManager.Add(proc);
+        try { proc = Process.Start(psi); }
+
+        catch (Exception) { return false; }
+
+        if (proc is null) return false;
+
+        JobManager.Add(proc);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile(name, which), JsonSerializer.Serialize(new { pid = proc.Id, port = p.Port }));
         return true;
@@ -181,7 +185,7 @@ public static class NodeSite
         try
         {
             var p = Process.Start(psi)!;
-            var o = p.StandardOutput.ReadToEnd(); var e = p.StandardError.ReadToEnd();
+            var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result;
             p.WaitForExit();
             return (p.ExitCode == 0, (o + e).Trim());
         }

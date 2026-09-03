@@ -38,14 +38,16 @@ public static class Nginx
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
-        var proc = Process.Start(psi)!;
-        JobManager.Add(proc);
+        var proc = Process.Start(psi)!;
+
+        JobManager.Add(proc);
+
         if (!wait)
             // Detached daemon: DON'T read the streams — ReadToEnd() would block until the
             // child exits (i.e. forever for nginx). Redirecting (above) is enough to keep
             // the daemon from inheriting the caller's console handle.
             return (0, "");
-        var outp = proc.StandardOutput.ReadToEnd() + proc.StandardError.ReadToEnd();
+        var outp = ((Func<string>)(() => { var _errT = proc.StandardError.ReadToEndAsync(); var _out = proc.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
         proc.WaitForExit();
         return (proc.ExitCode, outp);
     }

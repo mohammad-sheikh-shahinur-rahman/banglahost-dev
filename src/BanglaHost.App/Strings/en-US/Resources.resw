@@ -1,22 +1,87 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
+  <!-- Section headers -->
+  <data name="NavHdrOverview.Content" xml:space="preserve"><value>Overview</value></data>
+  <data name="NavHdrDevelop.Content" xml:space="preserve"><value>Develop</value></data>
+  <data name="NavHdrRuntimes.Content" xml:space="preserve"><value>Runtimes</value></data>
+  <data name="NavHdrAutomation.Content" xml:space="preserve"><value>Automation</value></data>
+  <data name="NavHdrMonitoring.Content" xml:space="preserve"><value>Monitoring</value></data>
+  <data name="NavHdrExplore.Content" xml:space="preserve"><value>Explore</value></data>
+  <data name="NavHdrDiagnostics.Content" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="NavHdrTools.Content" xml:space="preserve"><value>Tools</value></data>
+  <data name="NavHdrSupport.Content" xml:space="preserve"><value>Support</value></data>
+
+  <!-- Overview -->
   <data name="NavDashboard.Content" xml:space="preserve"><value>Dashboard</value></data>
   <data name="NavServices.Content" xml:space="preserve"><value>Services</value></data>
   <data name="NavSites.Content" xml:space="preserve"><value>Sites</value></data>
   <data name="NavSQLStudio.Content" xml:space="preserve"><value>SQL Studio</value></data>
   <data name="NavDatabases.Content" xml:space="preserve"><value>Databases</value></data>
+
+  <!-- Develop -->
   <data name="NavTerminal.Content" xml:space="preserve"><value>Terminal</value></data>
   <data name="NavFiles.Content" xml:space="preserve"><value>Files</value></data>
   <data name="NavGit.Content" xml:space="preserve"><value>Git</value></data>
   <data name="NavDatabaseExplorer.Content" xml:space="preserve"><value>Database Explorer</value></data>
-  <data name="NavMailpit.Content" xml:space="preserve"><value>Mailpit</value></data>
-  <data name="NavNode.Content" xml:space="preserve"><value>Node.js</value></data>
+
+  <!-- Runtimes -->
+  <data name="NavNode.Content" xml:space="preserve"><value>Node</value></data>
   <data name="NavPython.Content" xml:space="preserve"><value>Python</value></data>
-  <data name="NavPhpManager.Content" xml:space="preserve"><value>PHP Manager</value></data>
+  <data name="NavPhpManager.Content" xml:space="preserve"><value>PHP Versions</value></data>
   <data name="NavPhpExt.Content" xml:space="preserve"><value>PHP Extensions</value></data>
-  <data name="NavPhpIni.Content" xml:space="preserve"><value>php.ini Editor</value></data>
-  <data name="NavSSL.Content" xml:space="preserve"><value>Local SSL</value></data>
-  <data name="NavCron.Content" xml:space="preserve"><value>Cron/Queue</value></data>
+  <data name="NavPhpIni.Content" xml:space="preserve"><value>PHP INI Manager</value></data>
+
+  <!-- Automation -->
+  <data name="NavSSL.Content" xml:space="preserve"><value>SSL</value></data>
+  <data name="NavDomains.Content" xml:space="preserve"><value>Domains</value></data>
+  <data name="NavDeploy.Content" xml:space="preserve"><value>Deploy</value></data>
+  <data name="NavBackup.Content" xml:space="preserve"><value>Backup</value></data>
+  <data name="NavScheduler.Content" xml:space="preserve"><value>Scheduler</value></data>
+  <data name="NavCronManager.Content" xml:space="preserve"><value>Background Workers</value></data>
+  <data name="NavNpm.Content" xml:space="preserve"><value>NPM Scripts</value></data>
+  <data name="NavEmailInbox.Content" xml:space="preserve"><value>Email Inbox</value></data>
+  <data name="NavSecurity.Content" xml:space="preserve"><value>Security</value></data>
+
+  <!-- Monitoring -->
+  <data name="NavLogs.Content" xml:space="preserve"><value>Logs</value></data>
+  <data name="NavNetwork.Content" xml:space="preserve"><value>Network</value></data>
+  <data name="NavCache.Content" xml:space="preserve"><value>Cache</value></data>
+  <data name="NavQueue.Content" xml:space="preserve"><value>Queue</value></data>
+  <data name="NavEmail.Content" xml:space="preserve"><value>Email</value></data>
+  <data name="NavDocker.Content" xml:space="preserve"><value>Docker</value></data>
+  <data name="NavVsCode.Content" xml:space="preserve"><value>VS Code</value></data>
+  <data name="NavGithubActions.Content" xml:space="preserve"><value>GitHub Actions</value></data>
+  <data name="NavCfTunnel.Content" xml:space="preserve"><value>Cloudflare Tunnel</value></data>
+
+  <!-- Explore -->
+  <data name="NavAi.Content" xml:space="preserve"><value>AI Assistant</value></data>
+  <data name="NavMarketplace.Content" xml:space="preserve"><value>Marketplace</value></data>
+  <data name="NavBlueprint.Content" xml:space="preserve"><value>Blueprint</value></data>
+
+  <!-- Diagnostics -->
+  <data name="NavProfiler.Content" xml:space="preserve"><value>Profiler</value></data>
+  <data name="NavSiteHealth.Content" xml:space="preserve"><value>Site Health</value></data>
+  <data name="NavFileWatcher.Content" xml:space="preserve"><value>Log Watcher</value></data>
+
+  <!-- Tools -->
+  <data name="NavApiTester.Content" xml:space="preserve"><value>API Tester</value></data>
+  <data name="NavReverseProxy.Content" xml:space="preserve"><value>Reverse Proxy</value></data>
+  <data name="NavEnvManager.Content" xml:space="preserve"><value>.env Manager</value></data>
+  <data name="NavPackageManager.Content" xml:space="preserve"><value>Package Manager</value></data>
+  <data name="NavProjectAnalyzer.Content" xml:space="preserve"><value>Project Analyzer</value></data>
+
+  <!-- Support -->
+  <data name="NavAbout.Content" xml:space="preserve"><value>About BanglaHost</value></data>
+  <data name="NavContactSupport.Content" xml:space="preserve"><value>Contact Support</value></data>
+  <data name="NavReportBug.Content" xml:space="preserve"><value>Report Bug</value></data>
+  <data name="NavRequestFeature.Content" xml:space="preserve"><value>Request Feature</value></data>
+  <data name="NavDocumentation.Content" xml:space="preserve"><value>Documentation</value></data>
+  <data name="NavDonate.Content" xml:space="preserve"><value>Donate</value></data>
+
+  <!-- Chrome -->
+  <data name="NavSearch.PlaceholderText" xml:space="preserve"><value>Search…</value></data>
+
+  <!-- Settings -->
   <data name="SettingsLanguageTitle.Text" xml:space="preserve"><value>Application Language</value></data>
   <data name="SettingsLanguageDesc.Text" xml:space="preserve"><value>Change the language of the application interface. Requires restart.</value></data>
 </root>

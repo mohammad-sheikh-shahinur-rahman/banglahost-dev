@@ -35,14 +35,22 @@ public sealed partial class PhpManagerPage : Page
 
     private async void Install_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         var v = VerBox.Text.Trim();
         if (string.IsNullOrEmpty(v)) return;
         await DoInstall(v);
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async void Quick_Click(object sender, RoutedEventArgs e)
     {
+        try
+        {
         if (sender is Button b && b.Tag is string v) await DoInstall(v);
+        } catch (OperationCanceledException) { }
+    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private async Task DoInstall(string version)
