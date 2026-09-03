@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7B708222-608
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BanglaHost.Elevate", "src\BanglaHost.Elevate\BanglaHost.Elevate.csproj", "{36BB6C80-4433-4BEA-8974-09B44C4CB064}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BanglaHost.Tests", "src\BanglaHost.Tests\BanglaHost.Tests.csproj", "{BE31A54E-529C-4F94-AB27-821DAA828D3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -53,8 +55,17 @@ Global
 		{36BB6C80-4433-4BEA-8974-09B44C4CB064}.Release|x64.Build.0 = Release|Any CPU
 		{36BB6C80-4433-4BEA-8974-09B44C4CB064}.Release|ARM64.ActiveCfg = Release|Any CPU
 		{36BB6C80-4433-4BEA-8974-09B44C4CB064}.Release|ARM64.Build.0 = Release|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Debug|x64.Build.0 = Debug|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Release|x64.ActiveCfg = Release|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Release|x64.Build.0 = Release|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D}.Release|ARM64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{36BB6C80-4433-4BEA-8974-09B44C4CB064} = {7B708222-6088-493A-AB43-82E75801A588}
+		{BE31A54E-529C-4F94-AB27-821DAA828D3D} = {7B708222-6088-493A-AB43-82E75801A588}
 	EndGlobalSection
 EndGlobal

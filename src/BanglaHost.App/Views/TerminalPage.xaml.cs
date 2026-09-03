@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
+using BanglaHost.Core;
 
 namespace BanglaHost.App.Views
 {
@@ -90,7 +91,7 @@ namespace BanglaHost.App.Views
         }
 
         private void OnPowerShell(object sender, RoutedEventArgs e) =>
-            LaunchShell(SystemExe.PowerShell, "-NoLogo -NoExit");
+            LaunchShell(BanglaHost.Core.SystemExe.PowerShell, "-NoLogo -NoExit");
 
         private void OnPwsh7(object sender, RoutedEventArgs e)
         {
