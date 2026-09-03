@@ -4,7 +4,7 @@
 ; click "More info -> Run anyway" on SmartScreen (the Windows analog of macOS "Open Anyway").
 
 #define MyAppName "BanglaHost"
-#define MyAppVersion "1.5.1.0"
+#define MyAppVersion "1.6.1.0"
 #define MyAppPublisher "IT Amadersomaj Inc"
 #define MyAppExe "BanglaHost.App.exe"
 #define MyAppURL "https://apps.microsoft.com/store/detail/9MWFKR8D8318?cid=DevShareMCLPCB"
