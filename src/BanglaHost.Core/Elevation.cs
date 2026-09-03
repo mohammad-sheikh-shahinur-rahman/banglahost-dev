@@ -23,8 +23,19 @@ public static class Elevation
     }
 
     /// <summary>Run an elevated verb (e.g. "hosts-add foo.test"). Returns true on success
-    /// (helper exit 0). Pops one UAC prompt; if the user cancels, returns false (no throw).</summary>
-    public static bool Run(string verb, params string[] args)
+    /// (helper exit 0). Pops one UAC prompt; if the user cancels, returns false (no throw).
+    ///
+    /// Arguments go through <see cref="ProcessStartInfo.ArgumentList"/> so the runtime
+    /// applies Windows CRT quoting per element — the old hand-rolled
+    /// <c>"{a.Replace("\"", "\\\"")}"</c> join mishandled trailing backslashes
+    /// ("C:\dir\" became an escaped quote swallowing the next argument) on the
+    /// way into a privileged process (B15). The wait is bounded (2 min): the old
+    /// code blocked forever on an unanswered UAC prompt (C2).</summary>
+    public static bool Run(string verb, params string[] args) =>
+        RunAsync(verb, args, TimeSpan.FromMinutes(2), default).GetAwaiter().GetResult();
+
+    public static async Task<bool> RunAsync(
+        string verb, IEnumerable<string> args, TimeSpan timeout, CancellationToken ct = default)
     {
         var helper = HelperPath();
         if (helper is null) return false;
@@ -36,11 +47,15 @@ public static class Elevation
                 UseShellExecute = true,   // required for the "runas" verb (UAC)
                 Verb = "runas",
                 WindowStyle = ProcessWindowStyle.Hidden,
-                Arguments = string.Join(" ", new[] { verb }.Concat(args).Select(a => $"\"{a.Replace("\"", "\\\"")}\""))
             };
+            psi.ArgumentList.Add(verb);
+            foreach (var a in args) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
             if (p is null) return false;
-            p.WaitForExit();
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(timeout);
+            try { await p.WaitForExitAsync(cts.Token).ConfigureAwait(false); }
+            catch (OperationCanceledException) { return false; }
             return p.ExitCode == 0;
         }
         catch { return false; }   // user cancelled UAC, or helper missing

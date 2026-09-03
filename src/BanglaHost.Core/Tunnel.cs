@@ -111,33 +111,57 @@ public static class Tunnel
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
 
-        var urlRx = new Regex(@"https://[a-z0-9-]+\.trycloudflare\.com", RegexOptions.Compiled);
-        var urlTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var logLock = new object();
-        void OnLine(string? s)
-        {
-            if (s is null) return;
-            try { lock (logLock) File.AppendAllText(logPath, s + Environment.NewLine); } catch { }
-            var m = urlRx.Match(s);
-            if (m.Success) urlTcs.TrySetResult(m.Value);
-        }
-
         var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        proc.OutputDataReceived += (_, ev) => OnLine(ev.Data);
-        proc.ErrorDataReceived  += (_, ev) => OnLine(ev.Data);
-        proc.Exited += (_, _) => urlTcs.TrySetException(new Exception("cloudflared exited"));
         try
         {
             if (!proc.Start()) return (false, "failed to launch cloudflared");
         }
         catch (Exception ex) { return (false, "failed to launch cloudflared: " + ex.Message); }
-        proc.BeginOutputReadLine();
-        proc.BeginErrorReadLine();
+        
+        try { JobManager.Add(proc); } catch { }
         File.WriteAllText(PidFile(name), proc.Id.ToString());
+
+        var urlRx = new Regex(@"https://[a-z0-9-]+\.trycloudflare\.com", RegexOptions.Compiled);
+        var urlTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var logLock = new object();
+                void OnLine(string? s)
+                {
+                    if (s is null) return;
+                    try { lock (logLock) File.AppendAllText(logPath, s + Environment.NewLine); } catch { }
+                    var m = urlRx.Match(s);
+                    if (m.Success) urlTcs.TrySetResult(m.Value);
+                }
+
+                var outTask = Task.Run(async () =>
+                {
+                    using var sr = proc.StandardOutput;
+                    while (await sr.ReadLineAsync() is { } line) OnLine(line);
+                });
+                var errTask = Task.Run(async () =>
+                {
+                    using var sr = proc.StandardError;
+                    while (await sr.ReadLineAsync() is { } line) OnLine(line);
+                });
+
+                await Task.WhenAll(outTask, errTask);
+                await proc.WaitForExitAsync();
+                urlTcs.TrySetException(new Exception("cloudflared exited"));
+            }
+            catch { }
+            finally
+            {
+                proc.Dispose();
+            }
+        });
 
         try
         {
-            if (urlTcs.Task.Wait(TimeSpan.FromSeconds(45)))
+            if (urlTcs.Task.Wait(TimeSpan.FromSeconds(5)))
             {
                 var url = urlTcs.Task.Result;
                 File.WriteAllText(UrlFile(name), url);
@@ -148,9 +172,7 @@ public static class Tunnel
         {
             return (false, "tunnel exited early — see " + logPath);
         }
-        // Timed out waiting for the URL but the process is still alive — leave it running so
-        // the UI can pick up the URL on the next refresh, and re-scan the on-disk log once in
-        // case the URL landed between the last stream flush and our timeout.
+        
         try
         {
             var late = urlRx.Match(ReadShared(logPath));
@@ -206,7 +228,7 @@ public static class Tunnel
                     // Pre-1.4.4 spawned `cmd.exe /c cloudflared ... > log`. The cmd process can outlive
                     // cloudflared if it was terminated abruptly, holding a lock on the log file.
                     var script = $"Get-CimInstance Win32_Process -Filter \\\"Name='cmd.exe' AND CommandLine LIKE '%cloudflared.exe%'\\\" | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}";
-                    var psi = new ProcessStartInfo("powershell", $"-NoProfile -Command \"{script}\"")
+                    var psi = new ProcessStartInfo(SystemExe.PowerShell, $"-NoProfile -Command \"{script}\'")
                     {
                         UseShellExecute = false, CreateNoWindow = true
                     };
@@ -243,6 +265,27 @@ public static class Tunnel
             return true;
         }
         catch { return false; }
+    }
+
+    /// <summary>Called at startup: a tunnel left behind by a crashed instance is a live public
+    /// route into the user's machine — never leave one running silently (C13).</summary>
+    public static void CleanupStrayTunnels()
+    {
+        try
+        {
+            if (!Directory.Exists(Paths.Run)) return;
+            foreach (var f in Directory.EnumerateFiles(Paths.Run, "tunnel-*.pid"))
+            {
+                try
+                {
+                    var name = Path.GetFileNameWithoutExtension(f)["tunnel-".Length..];
+                    if (Running(name)) Stop(name);   // Stop kills the pid AND deletes pid/url state
+                    else { try { File.Delete(f); } catch { } }
+                }
+                catch { }
+            }
+        }
+        catch { }
     }
 
     public static IEnumerable<(string name, string? url)> List()

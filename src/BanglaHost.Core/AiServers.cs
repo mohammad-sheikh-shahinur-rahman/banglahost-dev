@@ -12,8 +12,9 @@ public static class Ollama
 
     public static bool Running()
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", Port).Wait(500) && c.Connected; }
-        catch { return false; }
+        // Non-blocking probe (NetUtils.IsListening enforces the timeout inside the async path
+        // instead of pinning a pool thread for it). Async callers should use RunningAsync.
+        return NetUtils.IsListening(Port, 500);
     }
 
     public static bool Start()

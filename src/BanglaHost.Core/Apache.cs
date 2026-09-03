@@ -22,12 +22,7 @@ public static class Apache
 
     public static bool Running()
     {
-        try
-        {
-            using var c = new System.Net.Sockets.TcpClient();
-            return c.ConnectAsync("127.0.0.1", Port).Wait(500) && c.Connected;
-        }
-        catch { return false; }
+        return NetUtils.IsListening(Port, 500);
     }
 
     private static string Fwd(string p) => p.Replace('\\', '/');
@@ -118,21 +113,15 @@ var body = $$"""
         try { File.Delete(Path.Combine(SitesDir, $"{name}.conf")); } catch { }
     }
 
-    /// <summary>Validate the config (httpd -t -f conf). Returns (ok, output).</summary>
+    /// <summary>Validate the config (httpd -t -f conf). Returns (ok, output).
+    /// Bounded wait, concurrent pipe reads (C2/C5).</summary>
     private static (bool ok, string output) Test()
     {
         var exe = Tools.HttpdExe()!;
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe, Arguments = $"-t -f \"{Fwd(Conf)}\"",
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,
-            WorkingDirectory = Path.GetDirectoryName(exe)!,
-        };
-        using var p = Process.Start(psi)!;
-        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        p.WaitForExit();
-        return (outp.Contains("Syntax OK"), outp);
+        var res = ProcRunner.Run(exe, new[] { "-t", "-f", Fwd(Conf) },
+            workingDir: Path.GetDirectoryName(exe), timeoutMs: 60_000);
+        var outp = res.TimedOut ? $"timed out\n{res.All}" : res.All;
+        return (!res.TimedOut && outp.Contains("Syntax OK"), outp);
     }
 
     public static (bool ok, string msg) Start()
@@ -152,11 +141,13 @@ var body = $$"""
         // like nginx: redirect streams so it doesn't hold the caller's console.
         var psi = new ProcessStartInfo
         {
-            FileName = exe, Arguments = $"-f \"{Fwd(Conf)}\"",
+            FileName = exe,
             UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
+        psi.ArgumentList.Add("-f");
+        psi.ArgumentList.Add(Fwd(Conf));
         var p = Process.Start(psi)!;
 
         JobManager.Add(p);

@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BanglaHost.Core;
@@ -28,22 +29,53 @@ public static class SslService
 {
     private static string CertsDir => Path.Combine(Paths.Home, "certs");
 
+    /// <summary>Let's Encrypt issuance is not implemented. See <see cref="GenerateLetsEncryptAsync"/>.</summary>
+    public static bool LetsEncryptSupported => false;
+
     public static void Init()
     {
         if (!Directory.Exists(CertsDir))
             Directory.CreateDirectory(CertsDir);
     }
 
+    /// <summary>
+    /// A domain name reaches the filesystem (as <c>&lt;domain&gt;.pem</c>) and the mkcert command line.
+    /// Unvalidated, <c>..\..\Windows\System32\x</c> wrote outside the certs directory, and a name
+    /// containing a quote broke out of the argument string.
+    /// Accepts a hostname or a single-label wildcard (<c>*.example.test</c>), which is what mkcert
+    /// takes for a SAN.
+    /// </summary>
+    public static string ValidDomain(string domain)
+    {
+        domain = (domain ?? "").Trim().ToLowerInvariant();
+        if (domain.Length == 0) throw new BhException("Domain is required.");
+        if (domain.Length > 253) throw new BhException("Domain is too long.");
+        if (!Regex.IsMatch(domain, @"^(\*\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"))
+            throw new BhException($"Invalid domain '{domain}'.");
+        return domain;
+    }
+
+    /// <summary>Wildcard certs are stored with the '*' replaced, because '*' is not a legal
+    /// Windows filename character.</summary>
+    private static string FileStem(string domain) => domain.Replace("*", "_wildcard");
+
     public static List<SslCertInfo> GetLocalCertificates()
     {
         Init();
         var list = new List<SslCertInfo>();
-        var files = Directory.GetFiles(CertsDir, "*.pem");
+        string[] files;
+        try { files = Directory.GetFiles(CertsDir, "*.pem"); }
+        catch { return list; }
+
         foreach (var file in files)
         {
+            if (file.EndsWith("-key.pem", StringComparison.OrdinalIgnoreCase)) continue;   // private keys aren't certs
             try
             {
-                var cert = new X509Certificate2(file);
+                // X509Certificate2 holds an unmanaged CNG/CAPI key handle. Without the using, one
+                // handle leaked per certificate per page visit; the SSL page refreshes on every
+                // navigation, so a long session accumulated hundreds.
+                using var cert = new X509Certificate2(file);
                 list.Add(new SslCertInfo(
                     Domain: Path.GetFileNameWithoutExtension(file),
                     Issuer: cert.Issuer,
@@ -58,41 +90,56 @@ public static class SslService
         return list;
     }
 
-    public static async Task<bool> GenerateLocalCertAsync(string domain, Action<string> log)
+    public static async Task<bool> GenerateLocalCertAsync(
+        string domain, Action<string> log, CancellationToken ct = default)
     {
-        log($"Generating local certificate for {domain} via mkcert...");
-        var exe = Path.Combine(Paths.Bin, "mkcert", "mkcert.exe");
-        if (!File.Exists(exe))
+        log ??= _ => { };
+        try { domain = ValidDomain(domain); }
+        catch (Exception ex) { log(ex.Message); return false; }
+
+        log($"Generating local certificate for {domain} via mkcert…");
+
+        // Was hardcoded to bin\mkcert\mkcert.exe, which misses the bundled install root shipped in
+        // the installer — so a fresh install reported "mkcert not found" with mkcert right there.
+        var exe = Tools.MkcertExe();
+        if (exe is null || !File.Exists(exe))
         {
-            log("mkcert not found. Please wait for it to be installed.");
+            log("mkcert not found. Install it from the Tools page and try again.");
             return false;
         }
 
-        var keyFile = Path.Combine(CertsDir, $"{domain}-key.pem");
-        var certFile = Path.Combine(CertsDir, $"{domain}.pem");
-        
-        var args = $"-key-file \"{keyFile}\" -cert-file \"{certFile}\" {domain}";
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe,
-            Arguments = args,
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
+        Init();
+        var stem = FileStem(domain);
+        var keyFile = Path.Combine(CertsDir, $"{stem}-key.pem");
+        var certFile = Path.Combine(CertsDir, $"{stem}.pem");
 
         try
         {
-            using var p = Process.Start(psi);
-            if (p == null) return false;
-            p.OutputDataReceived += (s, e) => { if (e.Data != null) log(e.Data); };
-            p.ErrorDataReceived += (s, e) => { if (e.Data != null) log(e.Data); };
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
-            await p.WaitForExitAsync();
-            return p.ExitCode == 0;
+            var res = await ProcRunner.RunAsync(
+                exe,
+                new[] { "-key-file", keyFile, "-cert-file", certFile, domain },
+                workingDir: Path.GetDirectoryName(exe),
+                timeoutMs: 120_000,
+                onOutputLine: log,
+                onErrorLine: log,          // mkcert writes its normal progress to stderr
+                ct: ct).ConfigureAwait(false);
+
+            if (res.TimedOut) { log("mkcert timed out after 120 seconds."); return false; }
+            if (res.ExitCode != 0)
+            {
+                log($"mkcert failed (exit {res.ExitCode}).");
+                return false;
+            }
+            if (!File.Exists(certFile) || !File.Exists(keyFile))
+            {
+                // Exit code 0 with no files means the local CA is not installed yet.
+                log("mkcert reported success but produced no files — run 'mkcert -install' once.");
+                return false;
+            }
+            log($"Certificate written to {certFile}");
+            return true;
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             log($"Error: {ex.Message}");
@@ -100,21 +147,34 @@ public static class SslService
         }
     }
 
-    public static async Task<bool> GenerateLetsEncryptAsync(string domain, string email, Action<string> log)
+    /// <summary>
+    /// NOT IMPLEMENTED. Kept so the UI has something to bind to, but it no longer pretends to work:
+    /// the previous body slept two seconds and logged "Simulation complete", which read to users as a
+    /// real certificate request that had failed for some unexplained reason.
+    ///
+    /// Issuing a real Let's Encrypt certificate needs an ACME client (win-acme or certbot), a
+    /// publicly reachable port 80 or a DNS-01 provider credential, and a renewal scheduler. None of
+    /// that is shipped. <see cref="LetsEncryptSupported"/> is false and the button is disabled.
+    /// </summary>
+    public static Task<bool> GenerateLetsEncryptAsync(string domain, string email, Action<string> log)
     {
-        log($"Starting Let's Encrypt generation for {domain}...");
-        log("Note: This requires port 80 to be publicly accessible, or DNS validation setup.");
-        // We'll use a bundled win-acme or certbot. For now, simulate the request.
-        await Task.Delay(2000);
-        log("Let's Encrypt feature requires `win-acme` CLI integration. Simulation complete.");
-        return false;
+        log?.Invoke("Let's Encrypt certificates are not supported in this version of BanglaHost. "
+                  + "Use mkcert for local domains, or issue a public certificate with win-acme/certbot "
+                  + "and drop the .pem files into " + CertsDir + ".");
+        return Task.FromResult(false);
     }
 
     public static void DeleteCert(string domain)
     {
-        var keyFile = Path.Combine(CertsDir, $"{domain}-key.pem");
-        var certFile = Path.Combine(CertsDir, $"{domain}.pem");
-        if (File.Exists(keyFile)) File.Delete(keyFile);
-        if (File.Exists(certFile)) File.Delete(certFile);
+        // The domain arrives from a UI Tag; validate before it becomes a path.
+        var stem = FileStem(ValidDomain(domain));
+        foreach (var f in new[] { Path.Combine(CertsDir, $"{stem}-key.pem"), Path.Combine(CertsDir, $"{stem}.pem") })
+        {
+            // Belt and braces: never delete outside CertsDir even if validation is ever loosened.
+            var full = Path.GetFullPath(f);
+            if (!full.StartsWith(Path.GetFullPath(CertsDir) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new BhException("Refusing to delete outside the certificates folder.");
+            if (File.Exists(full)) File.Delete(full);
+        }
     }
 }

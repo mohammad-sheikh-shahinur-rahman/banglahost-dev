@@ -3,6 +3,24 @@ using BanglaHost.Core;
 // Transparent CLI over BanglaHost.Core — the Windows analog of `engine/banglahost`.
 // Usage mirrors the mac verbs so muscle memory + docs carry across.
 
+// ── process ownership ───────────────────────────────────────────────────────────────────
+// The CLI is short-lived but starts long-lived services: `banglahost start all` has to leave
+// nginx/PHP/MariaDB running after this process returns. Without this call the services join a
+// KILL_ON_JOB_CLOSE job that dies with the CLI, so `start` appeared to work and then killed
+// everything it had just started.
+JobManager.Configure(killChildrenOnExit: false);
+
+// ── thread-pool floor ───────────────────────────────────────────────────────────────────
+// Core does short blocking waits (loopback probes, WaitForExit) on pool threads. The default
+// floor of ProcessorCount plus ~1-2 threads/sec injection turns a burst into a stall.
+try
+{
+    System.Threading.ThreadPool.GetMinThreads(out var minW, out var minIo);
+    var want = Math.Max(Environment.ProcessorCount * 4, 16);
+    System.Threading.ThreadPool.SetMinThreads(Math.Max(minW, want), Math.Max(minIo, want));
+}
+catch { }
+
 var engine = new Engine();
 var cmd = args.Length > 0 ? args[0] : "status";
 var rest = args.Skip(1).ToArray();

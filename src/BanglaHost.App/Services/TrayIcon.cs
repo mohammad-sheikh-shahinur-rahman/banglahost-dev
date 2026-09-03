@@ -36,6 +36,9 @@ public sealed class TrayIcon : IDisposable
     private readonly string _className = "BanglaHostTrayWnd";
     private readonly string _tip;
     private bool _added;
+    private IntPtr _hIcon;
+    private bool _ownsIcon;
+    private bool _disposed;
 
     public TrayIcon(string tooltip, string? iconPath = null)
     {
@@ -58,7 +61,9 @@ public sealed class TrayIcon : IDisposable
         var loaded = iconPath is not null && File.Exists(iconPath)
             ? LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
             : IntPtr.Zero;
-        data.hIcon = loaded != IntPtr.Zero ? loaded : LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        _ownsIcon = loaded != IntPtr.Zero;
+        _hIcon = _ownsIcon ? loaded : LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        data.hIcon = _hIcon;
         data.szTip = tooltip;
         _added = Shell_NotifyIcon(NIM_ADD, ref data);
     }
@@ -158,9 +163,13 @@ public sealed class TrayIcon : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         if (_added) { var d = NewData(""); Shell_NotifyIcon(NIM_DELETE, ref d); _added = false; }
         if (_hwnd != IntPtr.Zero) DestroyWindow(_hwnd);
         UnregisterClass(_className, GetModuleHandle(null));
+        if (_ownsIcon && _hIcon != IntPtr.Zero) { DestroyIcon(_hIcon); _hIcon = IntPtr.Zero; }
     }
 
     // â”€â”€ interop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -200,6 +209,7 @@ public sealed class TrayIcon : IDisposable
     [DllImport("user32.dll")] private static extern bool DestroyWindow(IntPtr hwnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr DefWindowProc(IntPtr h, uint m, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] private static extern IntPtr LoadIcon(IntPtr inst, int name);
+    [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr hIcon);
     private const uint IMAGE_ICON = 1, LR_LOADFROMFILE = 0x0010;
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr LoadImage(IntPtr inst, string name, uint type, int cx, int cy, uint load);
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();

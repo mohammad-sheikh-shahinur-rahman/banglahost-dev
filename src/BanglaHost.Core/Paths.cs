@@ -70,21 +70,44 @@ public static class Paths
             System.IO.Directory.CreateDirectory(d);
     }
 
-    /// <summary>Cleans up the temporary directory to prevent storage leaks.</summary>
-    public static void CleanTmp()
+    /// <summary>
+    /// Delete staging files older than <paramref name="maxAge"/>, oldest-first, until the
+    /// directory is under <paramref name="maxBytes"/> (D5). Temp holds installer archives,
+    /// extraction staging and backup staging — without this it grows without bound and no
+    /// uninstaller reclaims it. Never throws: cleanup must not break startup. Files still
+    /// locked by a running process are skipped and retried next launch.
+    /// </summary>
+    public static void CleanTmp(TimeSpan? maxAge = null, long maxBytes = 512L * 1024 * 1024)
     {
+        var age = maxAge ?? TimeSpan.FromDays(2);
         try
         {
-            if (System.IO.Directory.Exists(Tmp))
+            var dir = new DirectoryInfo(Tmp);
+            if (!dir.Exists) { dir.Create(); return; }
+
+            var files = dir.GetFiles("*", SearchOption.AllDirectories)
+                           .OrderBy(f => f.LastWriteTimeUtc)
+                           .ToList();
+            var cutoff = DateTime.UtcNow - age;
+            long total = 0;
+            foreach (var f in files) { try { total += f.Length; } catch { } }
+
+            foreach (var f in files)
             {
-                foreach (var f in System.IO.Directory.GetFiles(Tmp)) try { System.IO.File.Delete(f); } catch { }
-                foreach (var d in System.IO.Directory.GetDirectories(Tmp)) try { System.IO.Directory.Delete(d, true); } catch { }
-            }
-            else
-            {
-                System.IO.Directory.CreateDirectory(Tmp);
+                bool stale, over;
+                try
+                {
+                    f.Refresh();
+                    stale = f.LastWriteTimeUtc < cutoff;
+                    over = total > maxBytes;
+                }
+                catch { continue; }
+                if (!stale && !over) break;   // ordered oldest-first: nothing later qualifies
+                try { var n = f.Length; f.Delete(); total -= n; }
+                catch (IOException) { }                 // still in use — try again next launch
+                catch (UnauthorizedAccessException) { }
             }
         }
-        catch { }
+        catch { /* best-effort: cleanup must never break startup */ }
     }
 }

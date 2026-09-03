@@ -21,8 +21,9 @@ public static class DbServer
 
     public static bool Running()
     {
-        try { using var c = new TcpClient(); var ok = c.ConnectAsync("127.0.0.1", Port).Wait(600); return ok && c.Connected; }
-        catch { return false; }
+        // Was: ConnectAsync(...).Wait(600) with the TcpClient disposed while the connect could
+        // still be pending — a race that also produced unobserved SocketExceptions later.
+        return NetUtils.IsListening(Port, 600);
     }
 
     /// <summary>The engine ACTUALLY running on :3306 (from the run-file), or null if nothing is.</summary>
@@ -44,17 +45,18 @@ public static class DbServer
     public static bool ActiveIsMariadb => ActiveEngine() == "mariadb";
     public static bool Initialized => InitializedFor(DefaultEngine());
 
-    private static (int code, string output) RunWait(string exe, string args)
+    /// <summary>
+    /// Run a DB helper tool and collect its output.
+    ///
+    /// Was: a string <c>Arguments</c>, <c>StandardError.ReadToEnd()</c> to completion before stdout,
+    /// and an unbounded <c>WaitForExit()</c>. Three separate hangs in eight lines — a full stdout
+    /// pipe deadlocked the pair, and a tool that never exited (mysqladmin against a wedged server,
+    /// mysql_install_db on a locked data dir) hung BanglaHost with no way out.
+    /// </summary>
+    private static (int code, string output) RunWait(string exe, IEnumerable<string> args, int timeoutMs = 120_000)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe, Arguments = args, UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(exe)!,
-        };
-        using var p = Process.Start(psi)!;
-        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        p.WaitForExit();
-        return (p.ExitCode, outp);
+        var res = ProcRunner.Run(exe, args, workingDir: Path.GetDirectoryName(exe), timeoutMs: timeoutMs);
+        return (res.ExitCode, res.All);
     }
 
     public static (bool ok, string msg) EnsureInitialized(string engine)
@@ -72,13 +74,13 @@ public static class DbServer
             if (installer is null) return (false, "mariadb-install-db not found");
             // Windows mariadb-install-db.exe uses --datadir; no password arg = passwordless root.
             // (The --auth-root-authentication-method flag is Linux-only and errors out here.)
-            res = RunWait(installer, $"--datadir=\"{data}\"");
+            res = RunWait(installer, new[] { $"--datadir={data}" }, 300_000);
         }
         else
         {
             var mysqld = Tools.MysqldExe("mysql");
             if (mysqld is null) return (false, "mysqld not found — install MySQL");
-            res = RunWait(mysqld, $"--initialize-insecure --datadir=\"{data}\" --console");
+            res = RunWait(mysqld, new[] { "--initialize-insecure", $"--datadir={data}", "--console" }, 300_000);
         }
         if (!InitializedFor(engine))
         {
@@ -117,7 +119,11 @@ public static class DbServer
                         $" --log-error=\"{Path.Combine(Paths.Logs, engine + ".log").Replace("\\", "/")}\"" +
                         (engine == "mariadb" ? "" : " --mysqlx=0"),
             UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(mysqld)!,
+            // NOT redirected on purpose. This is a long-lived daemon: a redirected pipe nobody
+            // drains fills at 4 KB and blocks mysqld in write() forever — and we cannot drain it,
+            // because the Process object is disposed as soon as Start() returns. mysqld's own
+            // --log-error (set above) captures everything we would have read.
+            WorkingDirectory = Path.GetDirectoryName(mysqld)!,
         };
         using var proc = Process.Start(psi);
 
@@ -148,20 +154,36 @@ public static class DbServer
         if (engine != "mariadb" || !Running()) return "";
         var exe = Tools.MariadbUpgradeExe();
         if (exe is null) return "";
-        var pw = Config.Load().RootPassword;
-        var (code, outp) = RunWait(exe, $"-u root -h 127.0.0.1 -P {Port} {(pw.Length > 0 ? $"-p\"{pw}\" " : "")}");
+        using var auth = MySqlAuthFile.Create("root", Config.Load().RootPassword, Port);
+        var (code, outp) = RunWait(exe, MySqlAuthFile.Apply(auth, "root", Port), 600_000);
         return code == 0 ? "system tables upgraded (mariadb-upgrade)"
                          : $"mariadb-upgrade reported: {outp.Trim()}";
     }
 
-    public static void Stop()
+    /// <summary>
+    /// Stop the database.
+    ///
+    /// The automatic dump of every database used to run here, synchronously, on every stop:
+    /// "Stop All" then took as long as mysqldump needed for the user's largest database — minutes,
+    /// on the UI-facing path, with no progress and no way to cancel, and it ran again on every
+    /// restart. Daily backups are now scheduled separately (see
+    /// <see cref="BackupService.AutoBackupAllDatabasesAsync"/>); pass <c>backupFirst: true</c> to
+    /// opt back in for a specific stop.
+    /// </summary>
+    public static void Stop(bool backupFirst = false)
     {
+        if (backupFirst && Running())
+        {
+            try { BackupService.AutoBackupAllDatabasesAsync().Wait(TimeSpan.FromSeconds(5)); } catch { }
+        }
+
         var admin = Tools.MysqlClientExe() is { } cli ? Path.Combine(Path.GetDirectoryName(cli)!, "mysqladmin.exe") : null;
         if (admin is not null && File.Exists(admin) && Running())
         {
-            try { BackupService.AutoBackupAllDatabasesAsync().GetAwaiter().GetResult(); } catch { }
-            var pw = Config.Load().RootPassword;
-            RunWait(admin, $"-u root {(pw.Length > 0 ? $"-p\"{pw}\" " : "")}-h 127.0.0.1 -P {Port} --connect-timeout=5 shutdown");
+            using var auth = MySqlAuthFile.Create("root", Config.Load().RootPassword, Port);
+            var args = MySqlAuthFile.Apply(auth, "root", Port);
+            args.Add("shutdown");
+            RunWait(admin, args, 30_000);
         }
         try
         {

@@ -16,16 +16,12 @@ public static class ScaffoldService
 
         log($"[Scaffold] Downloading WordPress latest...");
         var zipPath = Path.Combine(Path.GetTempPath(), $"wp_{Guid.NewGuid():N}.zip");
-        
-        var psi = new ProcessStartInfo
-        {
-            FileName = "curl.exe",
-            Arguments = $"-L \"https://wordpress.org/latest.zip\" -o \"{zipPath}\"",
-            UseShellExecute = false, CreateNoWindow = true
-        };
-        var p = Process.Start(psi);
-        p?.WaitForExit();
-        if (p?.ExitCode != 0) throw new BhException("Failed to download WordPress.");
+
+        // Absolute curl path (B11); bounded wait (was unbounded, C2).
+        var curl = ProcRunner.Run(SystemExe.Curl,
+            new[] { "-L", "https://wordpress.org/latest.zip", "-o", zipPath },
+            timeoutMs: 600_000);
+        if (!curl.Ok) throw new BhException("Failed to download WordPress.");
 
         log($"[Scaffold] Extracting WordPress...");
         System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, Path.GetTempPath(), overwriteFiles: true);
@@ -40,14 +36,11 @@ public static class ScaffoldService
         File.Delete(zipPath);
 
         log($"[Scaffold] Creating database '{siteName}'...");
-        var mysqlExe = Tools.MysqlClientExe();
-        if (mysqlExe != null)
+        EnsureDatabase(siteName, cfg, log);
         {
             var user = "root";
             var pass = cfg.RootPassword;
             var port = 3306;
-            var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {port} -h 127.0.0.1";
-            try { using (var pm = Process.Start(new ProcessStartInfo { FileName = mysqlExe, Arguments = $"{auth} -e \"CREATE DATABASE IF NOT EXISTS \\\"{siteName}\\\";\"", UseShellExecute = false, CreateNoWindow = true })) { pm?.WaitForExit(); } } catch { }
 
             var configSample = Path.Combine(root, "wp-config-sample.php");
             var configFinal = Path.Combine(root, "wp-config.php");
@@ -80,28 +73,21 @@ public static class ScaffoldService
             throw new BhException("PHP and Composer are required to install Laravel. Please install them from the Services page.");
 
         log($"[Scaffold] Running composer create-project laravel/laravel {siteName}...");
-        
-        var psi = new ProcessStartInfo
-        {
-            FileName = php,
-            Arguments = $"\"{composer}\" create-project laravel/laravel \"{siteName}\"",
-            WorkingDirectory = cfg.SitesRoot,
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
-        };
-        var p = Process.Start(psi);
-        p?.WaitForExit();
-        if (p?.ExitCode != 0) throw new BhException($"Composer failed: {p?.StandardError.ReadToEnd()}");
+
+        // ArgumentList (never a pasted string) + bounded wait with concurrent pipe
+        // reads. Reading StandardError AFTER WaitForExit, as before, deadlocks when
+        // composer fills the stderr pipe — and the wait itself was unbounded (C2/C5).
+        var comp = ProcRunner.Run(php,
+            new[] { composer, "create-project", "laravel/laravel", siteName },
+            workingDir: cfg.SitesRoot, timeoutMs: 600_000);
+        if (!comp.Ok) throw new BhException($"Composer failed: {comp.StdErr.Split('\n').FirstOrDefault()}");
 
         log($"[Scaffold] Creating database '{siteName}'...");
-        var mysqlExe = Tools.MysqlClientExe();
-        if (mysqlExe != null)
+        EnsureDatabase(siteName, cfg, log);
         {
             var user = "root";
             var pass = cfg.RootPassword;
             var port = 3306;
-            var auth = $"-u {user}" + (string.IsNullOrEmpty(pass) ? "" : $" -p\"{pass}\"") + $" -P {port} -h 127.0.0.1";
-            try { using (var pm = Process.Start(new ProcessStartInfo { FileName = mysqlExe, Arguments = $"{auth} -e \"CREATE DATABASE IF NOT EXISTS \\\"{siteName}\\\";\"", UseShellExecute = false, CreateNoWindow = true })) { pm?.WaitForExit(); } } catch { }
 
             var envPath = Path.Combine(root, ".env");
             if (File.Exists(envPath))
@@ -133,32 +119,45 @@ public static class ScaffoldService
         if (npm == null || !File.Exists(npm)) throw new BhException("Node.js/NPM is required to install React. Please install Node.js from the Services page.");
 
         log($"[Scaffold] Running npm create vite@latest {siteName} -- --template react ...");
-        
-        var psi = new ProcessStartInfo
-        {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"\"{npm}\" create vite@latest \"{siteName}\" --yes -- --template react\"",
-            WorkingDirectory = cfg.SitesRoot,
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
-        };
-        var p = Process.Start(psi);
-        p?.WaitForExit();
-        if (p?.ExitCode != 0) throw new BhException($"Vite failed: {p?.StandardError.ReadToEnd()}");
+
+        // Absolute cmd (B11); bounded waits with concurrent pipe reads (C2/C5).
+        // (ReadToEnd-after-WaitForExit, as before, deadlocks on chatty output.)
+        var vite = ProcRunner.Run(SystemExe.Cmd,
+            new[] { "/d", "/c", $"\"{npm}\" create vite@latest \"{siteName}\" --yes -- --template react" },
+            workingDir: cfg.SitesRoot, timeoutMs: 600_000);
+        if (!vite.Ok) throw new BhException($"Vite failed: {vite.StdErr.Split('\n').FirstOrDefault()}");
 
         log($"[Scaffold] Installing React dependencies (npm install)...");
-        var psi2 = new ProcessStartInfo
-        {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"\"{npm}\" install\"",
-            WorkingDirectory = root,
-            UseShellExecute = false, CreateNoWindow = true
-        };
-        var p2 = Process.Start(psi2);
-        p2?.WaitForExit();
+        var inst = ProcRunner.Run(SystemExe.Cmd,
+            new[] { "/d", "/c", $"\"{npm}\" install" },
+            workingDir: root, timeoutMs: 600_000);
+        if (!inst.Ok) log($"[Scaffold] npm install reported: {inst.StdErr.Split('\n').FirstOrDefault()}");
 
         log($"[Scaffold] Note: React apps are typically run with 'npm run dev' or built for static hosting. You can start it from the Terminal.");
         engine.SiteAdd(siteName, cfg.DefaultPhp, root, cfg.DefaultWeb);
         log($"[Scaffold] React '{siteName}' is ready!");
+    }
+
+    /// <summary>
+    /// Create the scaffold database. Credentials travel in a locked-down defaults
+    /// file (never -p on the command line, B3) and the name is validated before it
+    /// reaches SQL — backtick-quoting alone is not a defence (B9). Best-effort:
+    /// scaffolding must not fail just because the DB server is down.
+    /// </summary>
+    private static void EnsureDatabase(string siteName, Config cfg, Action<string> log)
+    {
+        try
+        {
+            MySqlAuthFile.ValidIdentifier(siteName, "site name");
+            var mysqlExe = Tools.MysqlClientExe();
+            if (mysqlExe is null) return;
+            using var auth = MySqlAuthFile.Create("root", cfg.RootPassword, DbServer.Port);
+            var args = MySqlAuthFile.Apply(auth, "root", DbServer.Port);
+            args.Add("-e");
+            args.Add($"CREATE DATABASE IF NOT EXISTS `{siteName}`;");
+            var res = ProcRunner.Run(mysqlExe, args, timeoutMs: 60_000);
+            if (!res.Ok) log($"[Scaffold] database '{siteName}' not created: {res.StdErr.Split('\n').FirstOrDefault()}");
+        }
+        catch (Exception ex) { log($"[Scaffold] database '{siteName}' not created: {ex.Message}"); }
     }
 }

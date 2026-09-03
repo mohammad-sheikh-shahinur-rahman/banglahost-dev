@@ -157,6 +157,54 @@ public static class Services
 
     private static string EnabledFile => Path.Combine(Paths.Config, "enabled");
 
+    // ── enabled-set cache (D2) ───────────────────────────────────────────────
+    // Engine.Api() asked Enabled() once per service — 37 reads of one file per
+    // 2-second snapshot. The set is now read once and invalidated on write.
+    private static readonly object _enabledGate = new();
+    private static HashSet<string>? _enabledCache;
+
+    /// <summary>The whole enabled set, read once. Cached; invalidated by Enable/Disable.</summary>
+    public static IReadOnlySet<string> EnabledSet()
+    {
+        lock (_enabledGate)
+        {
+            if (_enabledCache is not null) return _enabledCache;
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if (File.Exists(EnabledFile))
+                {
+                    foreach (var line in File.ReadAllLines(EnabledFile))
+                        if (line.Trim() is { Length: > 0 } k) set.Add(k);
+                }
+                else
+                {
+                    // First run: seed from defaults without persisting yet.
+                    var cfg = Config.Load();
+                    foreach (var s in All)
+                        if (DefaultEnabled(s.Key, cfg)) set.Add(s.Key);
+                    _enabledCache = set;
+                    return set;
+                }
+            }
+            catch (IOException) { /* transient lock — fall through to defaults below */ }
+            if (set.Count == 0)
+            {
+                try
+                {
+                    var cfg = Config.Load();
+                    foreach (var s in All)
+                        if (DefaultEnabled(s.Key, cfg)) set.Add(s.Key);
+                }
+                catch { }
+            }
+            _enabledCache = set;
+            return set;
+        }
+    }
+
+    private static void InvalidateEnabled() { lock (_enabledGate) _enabledCache = null; }
+
     private static bool DefaultEnabled(string key, Config cfg) => key switch
     {
         "nginx" or "mysql" or "mariadb" => true,
@@ -165,8 +213,12 @@ public static class Services
 
     public static bool Enabled(string key, Config cfg)
     {
-        if (File.Exists(EnabledFile))
-            return File.ReadAllLines(EnabledFile).Any(l => l.Trim() == key);
+        try
+        {
+            if (File.Exists(EnabledFile))
+                return EnabledSet().Contains(key);
+        }
+        catch { }
         return DefaultEnabled(key, cfg);
     }
 
@@ -182,6 +234,7 @@ public static class Services
         Materialize(cfg);
         var lines = File.ReadAllLines(EnabledFile).ToList();
         if (!lines.Contains(key)) { lines.Add(key); File.WriteAllLines(EnabledFile, lines); }
+        InvalidateEnabled();
     }
 
     public static void Disable(string key, Config cfg)
@@ -189,5 +242,6 @@ public static class Services
         Materialize(cfg);
         var lines = File.ReadAllLines(EnabledFile).Where(l => l.Trim() != key).ToList();
         File.WriteAllLines(EnabledFile, lines);
+        InvalidateEnabled();
     }
 }

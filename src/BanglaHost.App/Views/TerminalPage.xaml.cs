@@ -90,7 +90,7 @@ namespace BanglaHost.App.Views
         }
 
         private void OnPowerShell(object sender, RoutedEventArgs e) =>
-            LaunchShell("powershell.exe", "-NoLogo -NoExit");
+            LaunchShell(SystemExe.PowerShell, "-NoLogo -NoExit");
 
         private void OnPwsh7(object sender, RoutedEventArgs e)
         {
@@ -104,7 +104,7 @@ namespace BanglaHost.App.Views
         }
 
         private void OnCmd(object sender, RoutedEventArgs e) =>
-            LaunchShell("cmd.exe", "/K");
+            LaunchShell(BanglaHost.Core.SystemExe.Cmd, "/K");
 
         private void OnGitBash(object sender, RoutedEventArgs e)
         {
@@ -118,7 +118,7 @@ namespace BanglaHost.App.Views
         }
 
         private void OnWsl(object sender, RoutedEventArgs e) =>
-            LaunchShell("wsl.exe", string.Empty);
+            LaunchShell(System.IO.Path.Combine(Environment.SystemDirectory, "wsl.exe"), string.Empty);
 
         private void LaunchShell(string fileName, string arguments)
         {
@@ -147,7 +147,8 @@ namespace BanglaHost.App.Views
                                 (string.IsNullOrEmpty(arguments) ? "" : " " + arguments);
                 using var p2 = Process.Start(new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
+                    // Absolute path (B11) — this spawns a visible shell.
+                    FileName = BanglaHost.Core.SystemExe.Cmd,
                     Arguments = startArgs,
                     UseShellExecute = false,
                     CreateNoWindow = true,

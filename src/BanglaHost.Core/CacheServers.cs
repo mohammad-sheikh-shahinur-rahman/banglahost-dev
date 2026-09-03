@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -9,8 +9,7 @@ internal static class CacheProc
 {
     public static bool PortOpen(int port)
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", port).Wait(500) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(port, 500);
     }
 
     public static bool Start(string runName, string? exe, string args, int port)

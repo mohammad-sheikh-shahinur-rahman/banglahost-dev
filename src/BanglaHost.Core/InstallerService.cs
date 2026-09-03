@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -91,44 +91,70 @@ public static class InstallerService
         return true;
     }
 
+    // Tools that are only available as .cmd shims on Windows (npm, npx) must be
+    // driven through cmd.exe — but NEVER via string-concatenated "cmd /c {cmd} {args}"
+    // with a PATH-resolved cmd (B13/B11). The cmd path is absolute, the tool is
+    // allow-listed, and the target dir is passed through ArgumentList-style quoting.
+    private static readonly HashSet<string> ShellTools =
+        new(StringComparer.OrdinalIgnoreCase) { "npm", "npx", "composer" };
+
     private static async Task<bool> RunCommandAsync(string cmd, string args, string cwd, Action<string> log)
     {
         try
         {
-            var psi = new ProcessStartInfo
-            {
-                FileName = cmd,
-                Arguments = args,
-                WorkingDirectory = cwd,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
+            if (!Directory.Exists(cwd)) Directory.CreateDirectory(cwd);
+            var tool = SystemExe.ResolveTool(cmd);
             
-            // Fallback for Windows cmd if the executable isn't directly resolvable
-            if (cmd == "npm" || cmd == "npx" || cmd == "composer")
+            string exeToRun;
+            var runArgs = new System.Collections.Generic.List<string>();
+
+            if (ShellTools.Contains(cmd))
             {
-                psi.FileName = "cmd.exe";
-                psi.Arguments = $"/c {cmd} {args}";
+                exeToRun = SystemExe.Cmd;
+                runArgs.Add("/d");
+                runArgs.Add("/c");
+                runArgs.Add(tool);
+                runArgs.AddRange(SplitArgs(args));
+            }
+            else
+            {
+                exeToRun = tool;
+                runArgs.AddRange(SplitArgs(args));
             }
 
-            using var p = Process.Start(psi);
-            if (p == null) return false;
+            var result = await ProcRunner.RunAsync(
+                exe: exeToRun,
+                args: runArgs,
+                workingDir: cwd,
+                onOutputLine: line => { if (line != null) log(line); },
+                onErrorLine: line => { if (line != null) log(line); }
+            );
 
-            p.OutputDataReceived += (s, e) => { if (e.Data != null) log(e.Data); };
-            p.ErrorDataReceived += (s, e) => { if (e.Data != null) log(e.Data); };
-            
-            p.BeginOutputReadLine();
-            p.BeginErrorReadLine();
-            
-            await p.WaitForExitAsync();
-            return p.ExitCode == 0;
+            return result.Ok;
         }
         catch (Exception ex)
         {
             log($"Command failed: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>Split an argument string on whitespace, honouring double quotes.</summary>
+    private static IEnumerable<string> SplitArgs(string args)
+    {
+        if (string.IsNullOrWhiteSpace(args)) yield break;
+        var cur = new System.Text.StringBuilder();
+        var inQuotes = false;
+        foreach (var c in args)
+        {
+            if (c == '"') { inQuotes = !inQuotes; continue; }
+            if (char.IsWhiteSpace(c) && !inQuotes)
+            {
+                if (cur.Length > 0) { yield return cur.ToString(); cur.Clear(); }
+                continue;
+            }
+            cur.Append(c);
+        }
+        if (cur.Length > 0) yield return cur.ToString();
     }
 }

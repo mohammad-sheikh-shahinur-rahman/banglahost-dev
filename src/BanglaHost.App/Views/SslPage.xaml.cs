@@ -14,78 +14,102 @@ public sealed partial class SslPage : Page
     public SslPage()
     {
         InitializeComponent();
-        DomainBox.TextChanged += (s, e) => 
+        DomainBox.TextChanged += (s, e) => UpdateDomainKind();
+        UpdateDomainKind();
+    }
+
+    /// <summary>
+    /// Decide whether the typed domain is local.
+    ///
+    /// This used to hardcode ".test". A user who set their TLD to <c>.local</c> or <c>.dev</c> in
+    /// Settings — which BanglaHost fully supports and uses everywhere else — was shown the public
+    /// Let's Encrypt form for their own local sites.
+    /// </summary>
+    private void UpdateDomainKind()
+    {
+        var tld = "." + (Config.Load().Tld ?? "test").TrimStart('.');
+        var text = DomainBox.Text?.Trim() ?? "";
+        var isLocal = text.EndsWith(tld, StringComparison.OrdinalIgnoreCase)
+                   || text.EndsWith(".test", StringComparison.OrdinalIgnoreCase)
+                   || text.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase);
+
+        LetsEncryptPanel.Visibility = isLocal ? Visibility.Collapsed : Visibility.Visible;
+
+        // Let's Encrypt issuance is not implemented (SslService.LetsEncryptSupported == false).
+        // The button used to be enabled and ran a two-second fake that logged "Simulation complete",
+        // which every user read as a failed real attempt.
+        GenLeBtn.IsEnabled = !isLocal && SslService.LetsEncryptSupported;
+        if (!SslService.LetsEncryptSupported)
         {
-            var isLocal = DomainBox.Text.EndsWith(".test", StringComparison.OrdinalIgnoreCase);
-            LetsEncryptPanel.Visibility = isLocal ? Visibility.Collapsed : Visibility.Visible;
-            GenLeBtn.IsEnabled = !isLocal;
-        };
+            ToolTipService.SetToolTip(GenLeBtn,
+                "Not available in this version. Issue a public certificate with win-acme or certbot "
+                + "and copy the .pem files into the certs folder.");
+        }
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
-        LoadCerts();
+        UpdateDomainKind();
+        BackgroundWork.Handler(LoadCertsAsync, "SslPage.LoadCerts");
     }
 
-    private void LoadCerts()
+    /// <summary>Parsing every .pem is CPU + disk work; it ran on the UI thread on every navigation.</summary>
+    private async Task LoadCertsAsync()
     {
-        SslList.ItemsSource = SslService.GetLocalCertificates();
+        var certs = await Task.Run(() => SslService.GetLocalCertificates());
+        SslList.ItemsSource = certs;
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => LoadCerts();
+    private void Refresh_Click(object sender, RoutedEventArgs e)
+        => BackgroundWork.Handler(LoadCertsAsync, "SslPage.Refresh");
 
-    private async void GenLocalBtn_Click(object sender, RoutedEventArgs e)
+    private void GenLocalBtn_Click(object sender, RoutedEventArgs e)
+        => BackgroundWork.Handler(GenLocalAsync, "SslPage.GenLocal");
+
+    private async Task GenLocalAsync()
     {
-        try
-        {
         var domain = DomainBox.Text.Trim();
         if (string.IsNullOrEmpty(domain)) return;
 
-        SetBusy(true, "Generating mkcert certificate...");
+        SetBusy(true, "Generating mkcert certificate…");
         Action<string> log = msg => DispatcherQueue?.TryEnqueue(() => OpMsg.Text = msg);
-        
-        var success = await Task.Run(() => SslService.GenerateLocalCertAsync(domain, log));
-        
-        SetBusy(false);
+
+        bool success;
+        try { success = await Task.Run(() => SslService.GenerateLocalCertAsync(domain, log)); }
+        finally { SetBusy(false); }
+
         if (success)
         {
             DomainBox.Text = "";
-            LoadCerts();
+            await LoadCertsAsync();
         }
-        } catch (OperationCanceledException) { }
-    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+        else
+        {
+            EngineHost.Instance.Append($"[SSL] Certificate generation for {domain} did not complete — see the message above.");
+        }
     }
 
-    private async void GenLeBtn_Click(object sender, RoutedEventArgs e)
+    private void GenLeBtn_Click(object sender, RoutedEventArgs e)
+        => BackgroundWork.Handler(GenLeAsync, "SslPage.GenLetsEncrypt");
+
+    private async Task GenLeAsync()
     {
-        try
-        {
         var domain = DomainBox.Text.Trim();
         var email = EmailBox.Text.Trim();
         if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(email)) return;
 
-        SetBusy(true, "Requesting Let's Encrypt certificate...");
         Action<string> log = msg => DispatcherQueue?.TryEnqueue(() => OpMsg.Text = msg);
-        
-        var success = await Task.Run(() => SslService.GenerateLetsEncryptAsync(domain, email, log));
-        
-        SetBusy(false);
-        if (success)
-        {
-            DomainBox.Text = "";
-            EmailBox.Text = "";
-            LoadCerts();
-        }
-        } catch (OperationCanceledException) { }
-    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+        OpBanner.Visibility = Visibility.Visible;
+        await SslService.GenerateLetsEncryptAsync(domain, email, log);
     }
 
     private void DeleteBtn_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string domain)
         {
-            SslService.DeleteCert(domain);
-            LoadCerts();
+            try { SslService.DeleteCert(domain); }
+            catch (Exception ex) { EngineHost.Instance.Append($"[ERROR] {ex.Message}"); }
+            BackgroundWork.Handler(LoadCertsAsync, "SslPage.AfterDelete");
         }
     }
 
@@ -102,7 +126,7 @@ public sealed partial class SslPage : Page
         {
             OpBanner.Visibility = Visibility.Collapsed;
             GenLocalBtn.IsEnabled = true;
-            GenLeBtn.IsEnabled = true;
+            UpdateDomainKind();      // restores the LE button to its real (disabled) state
         }
     }
 }

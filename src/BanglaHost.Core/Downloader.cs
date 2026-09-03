@@ -46,7 +46,7 @@ public static class Downloader
 
     /// <summary>Download a file to <paramref name="dest"/> via the signed system curl.exe, reporting
     /// live progress (curl's --progress-bar on stderr is parsed for the percentage).</summary>
-    private static Task CurlTo(string url, string dest, string? ua = UA)
+    private static async Task CurlTo(string url, string dest, string? ua = UA)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
         var psi = new System.Diagnostics.ProcessStartInfo
@@ -66,7 +66,7 @@ public static class Downloader
         var tail = new System.Text.StringBuilder();
         var buf = new char[256];
         int n;
-        while ((n = p.StandardError.Read(buf, 0, buf.Length)) > 0)
+        while ((n = await p.StandardError.ReadAsync(buf, 0, buf.Length)) > 0)
         {
             tail.Append(buf, 0, n);
             if (tail.Length > 4000) tail.Remove(0, tail.Length - 1000);   // keep the tail only
@@ -74,12 +74,11 @@ public static class Downloader
             if (m.Count > 0 && double.TryParse(m[^1].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture, out var pct))
                 OnProgress?.Invoke(pct);
         }
-        p.WaitForExit();
+        await p.WaitForExitAsync();
         if (p.ExitCode != 0)
             throw new InvalidOperationException($"curl failed ({p.ExitCode}): {tail.ToString().Trim()}");
         if (!File.Exists(dest) || new FileInfo(dest).Length == 0)
             throw new InvalidOperationException($"download produced no file: {url}");
-        return Task.CompletedTask;
     }
 
     private static async Task<string> DownloadToTmp(string url, string fileName, string? ua = UA)

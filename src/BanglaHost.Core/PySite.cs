@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -47,8 +47,7 @@ public static class PySite
 
     private static bool PortOpen(int port)
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", port).Wait(400) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(port, 400);
     }
 
     public static bool Running(string name) { var cfg = Load(name); return cfg is not null && PortOpen(cfg.Port); }
@@ -69,15 +68,23 @@ public static class PySite
         if (py is null) return (false, "python not installed ï¿½ banglahost install python");
         var venv = Path.Combine(dir, ".venv");
         if (Directory.Exists(Path.Combine(venv, "Scripts"))) return (true, "venv already exists");
-        var psi = NewPsi($"\"{py}\" -m venv \"{venv}\"", dir, capture: true);
-        try { var p = Process.Start(psi)!; var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result; p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
+        // Bounded wait with concurrent pipe reads (was unbounded WaitForExit, C2/C5).
+        try
+        {
+            var res = ProcRunner.Run(SystemExe.Cmd, new[] { "/d", "/c", $"\"{py}\" -m venv \"{venv}\"" },
+                workingDir: dir, timeoutMs: 300_000);
+            if (res.TimedOut) return (false, "venv creation timed out");
+            return (res.ExitCode == 0, res.All.Trim());
+        }
         catch (Exception ex) { return (false, ex.Message); }
     }
 
     private static ProcessStartInfo NewPsi(string innerCmd, string workDir, bool capture) => new()
     {
-        FileName = "cmd.exe",
-        Arguments = $"/c \"{innerCmd}\"",
+        // Absolute cmd path (B11); /d skips AutoRun. innerCmd is either a fixed
+        // tool invocation or the user's own configured run command.
+        FileName = SystemExe.Cmd,
+        Arguments = $"/d /c \"{innerCmd}\"",
         WorkingDirectory = workDir,
         UseShellExecute = false, CreateNoWindow = true,
         RedirectStandardOutput = capture, RedirectStandardError = capture,
@@ -87,13 +94,21 @@ public static class PySite
     /// PYTHONUNBUFFERED so gunicorn/uvicorn/flask resolve and logs are live.</summary>
     private static void SetEnv(ProcessStartInfo psi, PySiteConfig cfg)
     {
+        foreach (var kv in EnvDict(cfg)) psi.Environment[kv.Key] = kv.Value;
+    }
+
+    private static Dictionary<string, string> EnvDict(PySiteConfig cfg)
+    {
         var parts = new List<string>();
         if (cfg.Venv && VenvBin(cfg.Dir) is { } vb) parts.Add(vb);
         if (Tools.PythonBinDir() is { } pb) parts.Add(pb);
         parts.Add(Environment.GetEnvironmentVariable("PATH") ?? "");
-        psi.Environment["PATH"] = string.Join(";", parts);
-        psi.Environment["PORT"] = cfg.Port.ToString();
-        psi.Environment["PYTHONUNBUFFERED"] = "1";
+        return new Dictionary<string, string>
+        {
+            ["PATH"] = string.Join(";", parts),
+            ["PORT"] = cfg.Port.ToString(),
+            ["PYTHONUNBUFFERED"] = "1",
+        };
     }
 
     public static (bool ok, string msg) Start(string name)
@@ -107,8 +122,8 @@ public static class PySite
         var log = LogFile(name);
         var psi = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"{cfg.Cmd} > \"{log}\" 2>&1\"",
+            FileName = SystemExe.Cmd,
+            Arguments = $"/d /c \"{cfg.Cmd} > \"{log}\" 2>&1\"",
             WorkingDirectory = cfg.Dir,
             UseShellExecute = false, CreateNoWindow = true,
             // Do NOT set RedirectStandardOutput/Error here: the shell-level > "log" 2>&1
@@ -164,9 +179,14 @@ public static class PySite
         var target = hasReq ? "-r requirements.txt" : "--upgrade pip";
         var pip = cfg.Venv && VenvBin(cfg.Dir) is { } vb ? Path.Combine(vb, "pip.exe") : null;
         var inner = pip is not null ? $"\"{pip}\" install {target}" : $"python -m pip install {target}";
-        var psi = NewPsi(inner, cfg.Dir, capture: true);
-        SetEnv(psi, cfg);
-        try { var p = Process.Start(psi)!; var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result; p.WaitForExit(); return (p.ExitCode == 0, (o + e).Trim()); }
+        // Bounded wait with concurrent pipe reads (was unbounded WaitForExit, C2/C5).
+        try
+        {
+            var res = ProcRunner.Run(SystemExe.Cmd, new[] { "/d", "/c", inner },
+                workingDir: cfg.Dir, timeoutMs: 600_000, env: EnvDict(cfg));
+            if (res.TimedOut) return (false, "pip install timed out after 10 minutes");
+            return (res.ExitCode == 0, res.All.Trim());
+        }
         catch (Exception ex) { return (false, ex.Message); }
     }
 

@@ -190,23 +190,64 @@ public sealed partial class SiteListControl : UserControl
     catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
-    /// <summary>Open a terminal at the site folder — Windows Terminal if present, else PowerShell, else cmd.</summary>
+    /// <summary>
+    /// Open a terminal at the site folder — Windows Terminal if present, else PowerShell, else cmd.
+    /// No shell command strings: the directory is set via WorkingDirectory, PATH via the
+    /// environment block, and every argument via ArgumentList — so a root like
+    /// C:\Work\R&amp;D\site cannot become shell syntax (B12), and no executable is
+    /// resolved through PATH (B11).
+    /// </summary>
     private void Terminal_Click(object s, RoutedEventArgs e)
     {
         if (Row(Tag(s)) is not { } r || r.Root.Length == 0) return;
 
         var paths = new System.Collections.Generic.List<string> { Paths.Bin };
-        
+
         if (Tools.NodeBinDir() is { } nodeDir) paths.Add(nodeDir);
         if (Tools.PhpExe(r.Php) is { } phpExe) paths.Add(System.IO.Path.GetDirectoryName(phpExe)!);
         if (Tools.MysqlClientExe() is { } mysqlExe) paths.Add(System.IO.Path.GetDirectoryName(mysqlExe)!);
 
         var pathAdd = string.Join(";", paths) + ";";
-        var psCommand = $"$env:PATH='{pathAdd}' + $env:PATH; Set-Location -LiteralPath '{r.Root.Replace("'", "''")}'";
-        
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{r.Root}\" powershell.exe -NoExit -Command \"{psCommand}\"", UseShellExecute = true }); return; } catch { }
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = $"-NoExit -Command \"{psCommand}\"", UseShellExecute = true }); return; } catch { }
-        try { using var p = Process.Start(new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/K \"set PATH={pathAdd}%PATH% && cd /d \"{r.Root}\"\"", UseShellExecute = true }); } catch { }
+
+        var wt = BanglaHost.Core.SystemExe.WindowsTerminal();
+        if (wt is not null)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = wt, WorkingDirectory = r.Root, UseShellExecute = false,
+                };
+                psi.ArgumentList.Add("-d"); psi.ArgumentList.Add(r.Root);
+                psi.Environment["PATH"] = pathAdd + (Environment.GetEnvironmentVariable("PATH") ?? "");
+                using var p = Process.Start(psi);
+                return;
+            }
+            catch { }
+        }
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = BanglaHost.Core.SystemExe.PowerShell, WorkingDirectory = r.Root, UseShellExecute = false,
+            };
+            psi.ArgumentList.Add("-NoExit");
+            psi.Environment["PATH"] = pathAdd + (Environment.GetEnvironmentVariable("PATH") ?? "");
+            using var p = Process.Start(psi);
+            return;
+        }
+        catch { }
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = BanglaHost.Core.SystemExe.Cmd, WorkingDirectory = r.Root, UseShellExecute = false,
+            };
+            psi.ArgumentList.Add("/K");
+            psi.Environment["PATH"] = pathAdd + (Environment.GetEnvironmentVariable("PATH") ?? "");
+            using var p = Process.Start(psi);
+        }
+        catch { }
     }
 
     private static string Env(string v) => Environment.GetEnvironmentVariable(v) ?? "";
@@ -269,12 +310,13 @@ public sealed partial class SiteListControl : UserControl
         var panel = new StackPanel { Spacing = 10 };
         var outputBox = new TextBox { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Height = 200, Margin = new Thickness(0, 10, 0, 0), FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") };
         
-        async Task RunCmd(string title, string fileName, string args)
+        async Task RunCmd(string title, string fileName, params string[] args)
         {
             outputBox.Text = $"Running {title}...\n";
             try
             {
-                var psi = new System.Diagnostics.ProcessStartInfo { FileName = fileName, Arguments = args, WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                var psi = new System.Diagnostics.ProcessStartInfo { FileName = fileName, WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                foreach (var a in args) psi.ArgumentList.Add(a);
                 var p = System.Diagnostics.Process.Start(psi);
                 if (p == null) return;
                 await p.WaitForExitAsync();
@@ -294,7 +336,11 @@ public sealed partial class SiteListControl : UserControl
                 if (!System.IO.File.Exists(wpCli))
                 {
                     outputBox.Text = "Downloading WP-CLI...\n";
-                    var psi = new System.Diagnostics.ProcessStartInfo { FileName = "curl.exe", Arguments = $"-sL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o \"{wpCli}\"", UseShellExecute = false, CreateNoWindow = true };
+                    var psi = new System.Diagnostics.ProcessStartInfo { FileName = BanglaHost.Core.SystemExe.Curl, UseShellExecute = false, CreateNoWindow = true };
+                    psi.ArgumentList.Add("-sL");
+                    psi.ArgumentList.Add("https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar");
+                    psi.ArgumentList.Add("-o");
+                    psi.ArgumentList.Add(wpCli);
                     using var p = System.Diagnostics.Process.Start(psi);
                     await p!.WaitForExitAsync();
                     outputBox.Text += "WP-CLI downloaded.\n\n";
@@ -302,10 +348,10 @@ public sealed partial class SiteListControl : UserControl
             }
 
             var btn1 = new Button { Content = "Clear Cache (wp cache flush)", HorizontalAlignment = HorizontalAlignment.Stretch };
-            btn1.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Cache Flush", php!, $"\"{wpCli}\" cache flush"); };
+            btn1.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Cache Flush", php!, wpCli, "cache", "flush"); };
             
             var btn2 = new Button { Content = "Update Plugins (wp plugin update --all)", HorizontalAlignment = HorizontalAlignment.Stretch };
-            btn2.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Plugin Update", php!, $"\"{wpCli}\" plugin update --all"); };
+            btn2.Click += async (_, _) => { await EnsureWpCli(); await RunCmd("WP Plugin Update", php!, wpCli, "plugin", "update", "--all"); };
             
             var btn3 = new Button { Content = "Search & Replace (interactive)", HorizontalAlignment = HorizontalAlignment.Stretch };
             btn3.Click += async (_, _) => { outputBox.Text = "For Search & Replace, please open a terminal using the context menu."; await System.Threading.Tasks.Task.CompletedTask; };
@@ -318,13 +364,13 @@ public sealed partial class SiteListControl : UserControl
             var artisan = System.IO.Path.Combine(root, "artisan");
 
             var btn1 = new Button { Content = "Optimize Clear (artisan optimize:clear)", HorizontalAlignment = HorizontalAlignment.Stretch };
-            btn1.Click += async (_, _) => { await RunCmd("Optimize Clear", php!, $"\"{artisan}\" optimize:clear"); };
+            btn1.Click += async (_, _) => { await RunCmd("Optimize Clear", php!, artisan, "optimize:clear"); };
             
             var btn2 = new Button { Content = "Run Migrations (artisan migrate)", HorizontalAlignment = HorizontalAlignment.Stretch };
-            btn2.Click += async (_, _) => { await RunCmd("Migrate", php!, $"\"{artisan}\" migrate --force"); };
+            btn2.Click += async (_, _) => { await RunCmd("Migrate", php!, artisan, "migrate", "--force"); };
             
             var btn3 = new Button { Content = "Cache Routes (artisan route:cache)", HorizontalAlignment = HorizontalAlignment.Stretch };
-            btn3.Click += async (_, _) => { await RunCmd("Route Cache", php!, $"\"{artisan}\" route:cache"); };
+            btn3.Click += async (_, _) => { await RunCmd("Route Cache", php!, artisan, "route:cache"); };
 
             panel.Children.Add(btn1); panel.Children.Add(btn2); panel.Children.Add(btn3);
         }

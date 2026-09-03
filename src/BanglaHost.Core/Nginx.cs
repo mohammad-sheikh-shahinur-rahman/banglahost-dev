@@ -26,36 +26,35 @@ public static class Nginx
         try { return Process.GetProcessesByName("nginx").Length > 0; } catch { return false; }
     }
 
-    private static (int code, string output) Run(string exe, string args, bool wait = true)
+    private static (int code, string output) Run(string exe, string[] args, bool wait = true)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe,
-            Arguments = args,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            WorkingDirectory = Path.GetDirectoryName(exe)!,
-        };
-        var proc = Process.Start(psi)!;
-
-        JobManager.Add(proc);
-
         if (!wait)
-            // Detached daemon: DON'T read the streams — ReadToEnd() would block until the
-            // child exits (i.e. forever for nginx). Redirecting (above) is enough to keep
-            // the daemon from inheriting the caller's console handle.
+        {
+            // Detached daemon: spawn without redirected-stream collection — nginx
+            // daemonizes and never exits, so ReadToEnd-style collection would block
+            // forever. The process is job-tracked so it dies with the host.
+            var psi = new ProcessStartInfo
+            {
+                FileName = exe,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                WorkingDirectory = Path.GetDirectoryName(exe)!,
+            };
+            foreach (var a in args) psi.ArgumentList.Add(a);
+            var proc = Process.Start(psi)!;
+            JobManager.Add(proc);
             return (0, "");
-        var outp = ((Func<string>)(() => { var _errT = proc.StandardError.ReadToEndAsync(); var _out = proc.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        proc.WaitForExit();
-        return (proc.ExitCode, outp);
+        }
+        var res = ProcRunner.Run(exe, args, workingDir: Path.GetDirectoryName(exe), timeoutMs: 60_000);
+        return (res.TimedOut ? -1 : res.ExitCode, res.TimedOut ? $"timed out\n{res.All}" : res.All);
     }
 
     /// <summary>nginx -t: returns (ok, message). Treats "syntax is ok" as success even if the bind probe fails.</summary>
     public static (bool ok, string msg) Test(string exe)
     {
-        var (_, outp) = Run(exe, $"-t -p \"{NginxConfig.Fwd(NginxDir)}\" -c \"{NginxConfig.Fwd(ConfPath)}\"");
+        var (_, outp) = Run(exe, new[] { "-t", "-p", NginxConfig.Fwd(NginxDir), "-c", NginxConfig.Fwd(ConfPath) });
         return (outp.Contains("syntax is ok"), outp);
     }
 
@@ -75,7 +74,7 @@ public static class Nginx
         if (!ok) return (false, "nginx config test failed:\n" + msg);
 
         // Launch detached. nginx daemonizes on Windows and writes its own pid file.
-        Run(exe, $"-p \"{NginxConfig.Fwd(NginxDir)}\" -c \"{NginxConfig.Fwd(ConfPath)}\"", wait: false);
+        Run(exe, new[] { "-p", NginxConfig.Fwd(NginxDir), "-c", NginxConfig.Fwd(ConfPath) }, wait: false);
         System.Threading.Thread.Sleep(400);
         return Running() ? (true, "nginx started") : (false, "nginx failed to start (see logs/nginx-error.log)");
     }
@@ -84,7 +83,7 @@ public static class Nginx
     {
         var exe = Tools.NginxExe();
         if (exe is not null && Running())
-            Run(exe, $"-s stop -p \"{NginxConfig.Fwd(NginxDir)}\" -c \"{NginxConfig.Fwd(ConfPath)}\"");
+            Run(exe, new[] { "-s", "stop", "-p", NginxConfig.Fwd(NginxDir), "-c", NginxConfig.Fwd(ConfPath) });
         // Fallback: kill by pid if -s stop didn't clear it.
         try
         {
@@ -130,6 +129,6 @@ public static class Nginx
         NginxConfig.RenderMain(cfg);
         var exe = Tools.NginxExe();
         if (exe is null || !Running()) return;
-        Run(exe, $"-s reload -p \"{NginxConfig.Fwd(NginxDir)}\" -c \"{NginxConfig.Fwd(ConfPath)}\"");
+        Run(exe, new[] { "-s", "reload", "-p", NginxConfig.Fwd(NginxDir), "-c", NginxConfig.Fwd(ConfPath) });
     }
 }

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BanglaHost.Core;
@@ -15,28 +14,35 @@ public record DbResult(string[] Columns, List<string[]> Rows, string Error = "")
 /// simple columns+rows tuple the UI can render. Uses the SAME client resolution as
 /// <see cref="Database"/>/<see cref="PgDatabase"/> so it works with BanglaHost's
 /// versioned portable installs (e.g. bin\mariadb\mariadb-12.3.2-winx64\bin\mysql.exe).
+///
+/// All three query paths now build their command line with <see cref="ProcRunner"/>'s
+/// ArgumentList and carry a timeout. Previously the MySQL path interpolated the whole command line —
+/// including <c>-p{password}</c> and the user's SQL wrapped in manually escaped double quotes — into
+/// one string. A query containing a backslash before a quote (routine in a LIKE pattern or a regex)
+/// broke out of the quoting and became extra arguments to the client.
 /// </summary>
 public static class DbExplorer
 {
-    private static async Task<DbResult> RunAsync(ProcessStartInfo psi, string stdIn)
+    private const int QueryTimeoutMs = 120_000;
+
+    private static async Task<DbResult> RunAsync(
+        string exe, IEnumerable<string> args, string? workingDir, string? stdIn, CancellationToken ct)
     {
         try
         {
-            using var p = Process.Start(psi);
-            if (p is null) return new DbResult(Array.Empty<string>(), new(), "failed to start client");
-            if (!string.IsNullOrEmpty(stdIn))
-            {
-                await p.StandardInput.WriteAsync(stdIn);
-                p.StandardInput.Close();
-            }
-            var outT = p.StandardOutput.ReadToEndAsync();
-            var errT = p.StandardError.ReadToEndAsync();
-            await Task.WhenAll(outT, errT, p.WaitForExitAsync());
-            var err = string.Join('\n', errT.Result.Split('\n').Where(l => !l.Contains("ssl-verify-server-cert"))).Trim();
-            if (p.ExitCode != 0 && string.IsNullOrWhiteSpace(outT.Result))
-                return new DbResult(Array.Empty<string>(), new(), err);
-            return ParseTsv(outT.Result, err);
+            var res = await ProcRunner.RunAsync(exe, args, workingDir, QueryTimeoutMs, stdIn, ct: ct)
+                                      .ConfigureAwait(false);
+
+            var err = string.Join('\n', res.StdErr.Split('\n').Where(l => !l.Contains("ssl-verify-server-cert"))).Trim();
+            if (res.TimedOut)
+                return new DbResult(Array.Empty<string>(), new(),
+                    $"query timed out after {QueryTimeoutMs / 1000}s and was cancelled");
+            if (res.ExitCode != 0 && string.IsNullOrWhiteSpace(res.StdOut))
+                return new DbResult(Array.Empty<string>(), new(), string.IsNullOrWhiteSpace(err) ? "client failed" : err);
+
+            return ParseTsv(res.StdOut, err);
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             return new DbResult(Array.Empty<string>(), new(), ex.Message);
@@ -53,105 +59,118 @@ public static class DbExplorer
         return new DbResult(cols, rows, error);
     }
 
-    public static async Task<DbResult> QueryMysqlAsync(string query, string db = "")
+    public static async Task<DbResult> QueryMysqlAsync(string query, string db = "", CancellationToken ct = default)
     {
         var engine = DbServer.ActiveEngine();
         var cli = (engine is not null ? Tools.MysqlClientFor(engine) : Tools.MysqlClientExe());
         if (cli is null) return new DbResult(Array.Empty<string>(), new(), "MySQL/MariaDB client not found — install MariaDB or MySQL");
 
+        // -D takes an identifier; it is not quotable, so it must be validated rather than escaped.
+        if (!string.IsNullOrEmpty(db))
+        {
+            try { MySqlAuthFile.ValidIdentifier(db, "database name"); }
+            catch (Exception ex) { return new DbResult(Array.Empty<string>(), new(), ex.Message); }
+        }
+
         var bin = Path.GetDirectoryName(cli)!;
         var pdir = Path.GetFullPath(Path.Combine(bin, "..", "lib", "plugin"));
-        var pdArg = Directory.Exists(pdir) ? $"--plugin-dir=\"{pdir}\" " : "";
 
-        var pw = Config.Load().RootPassword;
-        var args = new StringBuilder()
-            .Append($"-u root -h 127.0.0.1 -P {DbServer.Port} --connect-timeout=5 ")
-            .Append(pw.Length > 0 ? $"-p{pw} " : "")
-            .Append(pdArg)
-            .Append("--batch --raw ")
-            .Append(string.IsNullOrEmpty(db) ? "" : $"-D {db} ")
-            .Append("-e ")
-            .Append('"').Append(query.Replace("\"", "\\\"")).Append('"')
-            .ToString();
+        using var auth = MySqlAuthFile.Create("root", Config.Load().RootPassword, DbServer.Port);
+        var args = MySqlAuthFile.Apply(auth, "root", DbServer.Port);
+        if (Directory.Exists(pdir)) args.Add($"--plugin-dir={pdir}");
+        args.Add("--batch");
+        args.Add("--raw");
+        if (!string.IsNullOrEmpty(db)) { args.Add("-D"); args.Add(db); }
+        args.Add("-e");
+        args.Add(query);          // its own argv element: no escaping, nothing to break out of
 
-        return await RunAsync(new ProcessStartInfo
-        {
-            FileName = cli, Arguments = args,
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
-            WorkingDirectory = bin,
-        }, stdIn: "");
+        return await RunAsync(cli, args, bin, stdIn: null, ct).ConfigureAwait(false);
     }
 
-    public static async Task<DbResult> QueryPostgresAsync(string query, string db = "postgres")
+    public static async Task<DbResult> QueryPostgresAsync(
+        string query, string db = "postgres", CancellationToken ct = default)
     {
         var psql = Tools.PsqlExe();
         if (psql is null) return new DbResult(Array.Empty<string>(), new(), "psql not found — install PostgreSQL");
 
-        var psi = new ProcessStartInfo
+        if (!System.Text.RegularExpressions.Regex.IsMatch(db ?? "", @"^[A-Za-z0-9_$-]{1,63}$"))
+            return new DbResult(Array.Empty<string>(), new(), $"invalid database name '{db}'");
+
+        var args = new List<string>
         {
-            FileName = psql,
-            Arguments = $"-h 127.0.0.1 -p {PgServer.Port} -U postgres -d {db} -A -F \"\t\" --pset=footer=off",
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
-            WorkingDirectory = Path.GetDirectoryName(psql)!,
+            "-h", "127.0.0.1",
+            "-p", PgServer.Port.ToString(),
+            "-U", "postgres",
+            "-d", db!,
+            "-A",
+            "-F", "\t",
+            "--pset=footer=off",
         };
-        psi.Environment["PGPASSWORD"] = "";
-        return await RunAsync(psi, stdIn: query.EndsWith(';') ? query + "\n" : query + ";\n");
+
+        var env = new Dictionary<string, string> { ["PGPASSWORD"] = "" };
+        var sql = query.EndsWith(';') ? query + "\n" : query + ";\n";
+
+        try
+        {
+            var res = await ProcRunner.RunAsync(psql, args, Path.GetDirectoryName(psql),
+                                                QueryTimeoutMs, sql, env, ct: ct).ConfigureAwait(false);
+            if (res.TimedOut)
+                return new DbResult(Array.Empty<string>(), new(), $"query timed out after {QueryTimeoutMs / 1000}s");
+            var err = res.StdErr.Trim();
+            if (res.ExitCode != 0 && string.IsNullOrWhiteSpace(res.StdOut))
+                return new DbResult(Array.Empty<string>(), new(), string.IsNullOrWhiteSpace(err) ? "psql failed" : err);
+            return ParseTsv(res.StdOut, err);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { return new DbResult(Array.Empty<string>(), new(), ex.Message); }
     }
 
-    public static async Task<DbResult> QuerySqliteAsync(string dbPath, string query)
+    public static async Task<DbResult> QuerySqliteAsync(string dbPath, string query, CancellationToken ct = default)
     {
-        var exe = Path.Combine(Paths.Bin, "sqlite", "sqlite3.exe");
-        if (!File.Exists(exe)) return new DbResult(Array.Empty<string>(), new(), "sqlite3.exe not found");
+        // Was hardcoded to bin\sqlite\sqlite3.exe, which misses both the bundled install root and
+        // any versioned extract dir — so SQLite browsing silently reported "not found".
+        var exe = Tools.SqliteExe();
+        if (exe is null || !File.Exists(exe)) return new DbResult(Array.Empty<string>(), new(), "sqlite3.exe not found");
         if (!File.Exists(dbPath)) return new DbResult(Array.Empty<string>(), new(), "database file not found");
 
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe, Arguments = $"\"{dbPath}\"",
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,
-        };
-        return await RunAsync(psi, stdIn: $".headers on\n.mode tabs\n{query}\n.quit\n");
+        var stdin = $".headers on\n.mode tabs\n{query}\n.quit\n";
+        return await RunAsync(exe, new[] { dbPath }, Path.GetDirectoryName(exe), stdin, ct).ConfigureAwait(false);
     }
 
-    public static async Task<List<string>> GetDatabases(string engine)
+    public static async Task<List<string>> GetDatabases(string engine, CancellationToken ct = default)
     {
         var list = new List<string>();
         if (engine == "mariadb" || engine == "mysql")
         {
-            var r = await QueryMysqlAsync("SHOW DATABASES;", "");
+            var r = await QueryMysqlAsync("SHOW DATABASES;", "", ct).ConfigureAwait(false);
             var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "information_schema", "performance_schema", "mysql", "sys" };
             foreach (var row in r.Rows) if (row.Length > 0 && !skip.Contains(row[0])) list.Add(row[0]);
         }
         else if (engine == "postgresql")
         {
-            var r = await QueryPostgresAsync("SELECT datname FROM pg_database WHERE datistemplate = false;", "postgres");
+            var r = await QueryPostgresAsync("SELECT datname FROM pg_database WHERE datistemplate = false;", "postgres", ct).ConfigureAwait(false);
             var skip = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "postgres", "template0", "template1" };
             foreach (var row in r.Rows) if (row.Length > 0 && !skip.Contains(row[0])) list.Add(row[0]);
         }
         return list;
     }
 
-    public static async Task<List<string>> GetTables(string engine, string db)
+    public static async Task<List<string>> GetTables(string engine, string db, CancellationToken ct = default)
     {
         var list = new List<string>();
         if (engine == "mariadb" || engine == "mysql")
         {
-            var r = await QueryMysqlAsync("SHOW TABLES;", db);
+            var r = await QueryMysqlAsync("SHOW TABLES;", db, ct).ConfigureAwait(false);
             foreach (var row in r.Rows) if (row.Length > 0) list.Add(row[0]);
         }
         else if (engine == "postgresql")
         {
-            var r = await QueryPostgresAsync("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;", db);
+            var r = await QueryPostgresAsync("SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;", db, ct).ConfigureAwait(false);
             foreach (var row in r.Rows) if (row.Length > 0) list.Add(row[0]);
         }
         else if (engine == "sqlite")
         {
-            var r = await QuerySqliteAsync(db, "SELECT name FROM sqlite_master WHERE type='table';");
+            var r = await QuerySqliteAsync(db, "SELECT name FROM sqlite_master WHERE type='table';", ct).ConfigureAwait(false);
             foreach (var row in r.Rows) if (row.Length > 0) list.Add(row[0]);
         }
         return list;

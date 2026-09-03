@@ -1,11 +1,11 @@
-using System.Diagnostics;
+ï»¿using System.Diagnostics;
 
 namespace BanglaHost.Core;
 
 /// <summary>
 /// Add BanglaHost's folders to Windows Defender's exclusion list so the antivirus doesn't quarantine the
-/// server binaries BanglaHost downloads (PHP/nginx/MariaDB/redis/memcached…). Defender-only — there's no
-/// standard API for third-party AVs (ESET/Avast/…), which the README documents for manual setup.
+/// server binaries BanglaHost downloads (PHP/nginx/MariaDB/redis/memcachedâ€¦). Defender-only â€” there's no
+/// standard API for third-party AVs (ESET/Avast/â€¦), which the README documents for manual setup.
 /// </summary>
 public static class WindowsDefender
 {
@@ -22,7 +22,7 @@ public static class WindowsDefender
         var arg = string.Join(",", clean.Select(p => "'" + p.Replace("'", "''") + "'"));
         var psi = new ProcessStartInfo
         {
-            FileName = "powershell.exe",
+            FileName = SystemExe.PowerShell,
             Arguments = $"-NoProfile -NonInteractive -WindowStyle Hidden -Command " +
                         $"\"Add-MpPreference -ExclusionPath {arg} -ErrorAction Stop\"",
             UseShellExecute = true,   // required for the runas verb (UAC)
@@ -45,7 +45,7 @@ public static class WindowsDefender
         if (exit == 0) return (true, "added " + clean.Length + " folder(s) to Windows Defender exclusions");
         return AllExcluded(clean)
             ? (true, "added to Windows Defender exclusions")
-            : (false, "exclusion didn't apply — Tamper Protection may be on, or another antivirus is active");
+            : (false, "exclusion didn't apply â€” Tamper Protection may be on, or another antivirus is active");
     }
 
     /// <summary>True if every given path is currently in Defender's exclusion list.</summary>
@@ -55,7 +55,7 @@ public static class WindowsDefender
         {
             var psi = new ProcessStartInfo
             {
-                FileName = "powershell.exe",
+                FileName = SystemExe.PowerShell,
                 Arguments = "-NoProfile -NonInteractive -Command \"(Get-MpPreference).ExclusionPath\"",
                 UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true,
             };

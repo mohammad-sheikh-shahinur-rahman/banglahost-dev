@@ -6,27 +6,23 @@ namespace BanglaHost.Core;
 /// Windows analog of the mac engine's <c>php ini</c> / <c>php ioncube</c> / <c>php status</c>.</summary>
 public static class Php
 {
-    private static (int code, string output) Run(string exe, string args, (string k, string v)? env = null)
+    /// <summary>Short-lived php.exe probe. Bounded wait, concurrent pipe reads —
+    /// the old inline ReadToEnd+WaitForExit pair deadlocked on chatty output and
+    /// hung forever on a wedged child (C2/C5). ArgumentList, never a string.</summary>
+    private static (int code, string output) Run(string exe, string[] args, (string k, string v)? env = null)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe, Arguments = args,
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,
-            WorkingDirectory = Path.GetDirectoryName(exe)!,
-        };
-        if (env is { } e) psi.Environment[e.k] = e.v;
-        var p = Process.Start(psi)!;
-        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        p.WaitForExit();
-        return (p.ExitCode, outp);
+        var res = ProcRunner.Run(exe, args,
+            workingDir: Path.GetDirectoryName(exe),
+            timeoutMs: 60_000,
+            env: env is { } e ? new Dictionary<string, string> { [e.k] = e.v } : null);
+        return (res.TimedOut ? -1 : res.ExitCode, res.All);
     }
 
     /// <summary>Resolve (seeding if needed) the loaded php.ini for a version.</summary>
     public static string IniPath(string version)
     {
         var exe = Tools.PhpExe(version) ?? throw new BhException($"php {version} not installed");
-        var (_, loaded) = Run(exe, "-r \"echo php_ini_loaded_file();\"");
+        var (_, loaded) = Run(exe, new[] { "-r", "echo php_ini_loaded_file();" });
         loaded = loaded.Trim();
         if (loaded.Length > 0 && File.Exists(loaded)) return loaded;
 
@@ -311,7 +307,7 @@ public static class Php
             if (exe is null) continue;
             var ini = IniPath(v);
             var configured = File.ReadAllText(ini).Contains("ioncube_loader", StringComparison.OrdinalIgnoreCase);
-            var (_, vout) = Run(exe, "-v");
+            var (_, vout) = Run(exe, new[] { "-v" });
             // Match the SUCCESS banner ("with the ionCube PHP Loader"); the failure messages
             // ("Failed loading …ioncube…", "[ionCube Loader] The Loader must appear…") must NOT count as loaded.
             var loaded = vout.Contains("ionCube PHP Loader", StringComparison.OrdinalIgnoreCase);

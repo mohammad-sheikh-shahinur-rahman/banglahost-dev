@@ -1,4 +1,6 @@
-﻿using System.Security.Principal;
+﻿using System.Net;
+using System.Net.Sockets;
+using System.Security.Principal;
 using System.Text.RegularExpressions;
 
 namespace BanglaHost.Core;
@@ -44,14 +46,31 @@ public static class Hosts
     }
 
     /// <summary>Append "<paramref name="ip"/> <paramref name="domain"/> # BanglaHost" if absent. Returns false (no-throw) when not elevated.</summary>
+    /// <summary>
+    /// Parse an IP and re-serialise the parsed value, so only a canonical address
+    /// can ever reach the hosts file. A raw string could carry newlines or extra
+    /// tokens into a file the elevated helper writes (B5) — the parsed form cannot.
+    /// </summary>
+    public static string CanonicalIp(string raw)
+    {
+        if (!IPAddress.TryParse((raw ?? "").Trim(), out var ip))
+            throw new BhException($"not a valid IP address: '{raw}'");
+        if (ip.AddressFamily is not (AddressFamily.InterNetwork or AddressFamily.InterNetworkV6))
+            throw new BhException($"unsupported address family for '{raw}'");
+        return ip.ToString();
+    }
+
     public static bool Add(string domain, string ip = "127.0.0.1")
     {
         if (!IsValidDomain(domain)) return false;   // never write unvalidated input to the hosts file
+        string safeIp;
+        try { safeIp = CanonicalIp(ip); }
+        catch { return false; }
         if (Has(domain)) return true;
         if (!IsElevated()) return false;
         try
         {
-            File.AppendAllText(Paths.HostsFile, $"{ip} {domain} {Tag}{Environment.NewLine}");
+            File.AppendAllText(Paths.HostsFile, $"{safeIp} {domain} {Tag}{Environment.NewLine}");
             return true;
         }
         catch (UnauthorizedAccessException) { throw new BhException("Failed to modify hosts file. Your antivirus may be blocking it, or the file is read-only."); }
@@ -59,7 +78,13 @@ public static class Hosts
         catch { return false; }
     }
 
-    /// <summary>Remove our tagged line for a domain. Returns false when not elevated.</summary>
+    /// <summary>
+    /// Remove our tagged line(s) for exactly <paramref name="domain"/>.
+    /// Hostnames are compared with ordinal-ignore-case equality on the parsed
+    /// name fields — never substring matching, so removing "app.test" cannot
+    /// take "myapp.test" or "app.test.local" with it (B6). Lines outside our
+    /// managed block are never touched.
+    /// </summary>
     public static bool Remove(string domain)
     {
         if (!IsValidDomain(domain)) return false;
@@ -67,8 +92,17 @@ public static class Hosts
         if (!IsElevated()) return false;
         try
         {
-            var kept = File.ReadAllLines(Paths.HostsFile)
-                           .Where(l => !(l.Contains(Tag) && l.Contains(domain)));
+            // A hosts line is "<addr> <name> [name…] [# comment]". Only a line we
+            // tagged AND whose name list contains exactly this hostname is dropped.
+            bool IsOursFor(string line)
+            {
+                if (!line.Contains(Tag, StringComparison.Ordinal)) return false;
+                var payload = line.Split('#', 2)[0];
+                var fields = payload.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                if (fields.Length < 2) return false;
+                return fields.Skip(1).Any(n => string.Equals(n, domain, StringComparison.OrdinalIgnoreCase));
+            }
+            var kept = File.ReadAllLines(Paths.HostsFile).Where(l => !IsOursFor(l));
             File.WriteAllLines(Paths.HostsFile, kept);
             return true;
         }

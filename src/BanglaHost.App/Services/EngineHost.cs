@@ -21,6 +21,8 @@ public sealed class EngineHost
     {
         Engine = new Engine { Out = Append, Err = Append };
         try { if (!System.IO.Directory.Exists(Paths.Config)) Engine.Init(); } catch { /* surfaced later */ }
+        // Reclaim stale temp files off the UI thread (D5). Age-gated + lock-tolerant.
+        try { Task.Run(() => Paths.CleanTmp()); } catch { }
         // One-shot repair for known-bad configs from earlier builds (Apache CGI 500, mojibake landing).
         try { Task.Run(() => Engine.Repair()); } catch { }
     }
@@ -69,7 +71,11 @@ public sealed class EngineHost
         return (ok, sb.ToString().Trim());
     });
 
-    public Task<Snapshot> Snapshot() => Task.Run(() => Engine.Api());
+    public Task<Snapshot> Snapshot() => Snapshot(default);
+
+    /// <summary>Cancellable snapshot: a superseded refresh abandons its probes
+    /// instead of finishing late work that only delays the next tick (A1/D4).</summary>
+    public Task<Snapshot> Snapshot(System.Threading.CancellationToken ct) => Engine.ApiAsync(ct);
 
     // â”€â”€ tracked operations (installs etc.) — survive page navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     /// <summary>State of a long-running operation, readable from any page so progress persists.</summary>

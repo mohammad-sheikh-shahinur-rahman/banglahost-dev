@@ -178,8 +178,26 @@ public sealed partial class PythonPage : Page
     private void TerminalApp_Click(object s, RoutedEventArgs e)
     {
         var d = PySite.DirOf(Tag(s)); if (d.Length == 0) return;
-        try { Process.Start(new ProcessStartInfo { FileName = "wt.exe", Arguments = $"-d \"{d}\"", UseShellExecute = true }); return; } catch { }
-        try { Process.Start(new ProcessStartInfo { FileName = "powershell.exe", Arguments = $"-NoExit -Command \"Set-Location -LiteralPath '{d.Replace("'", "''")}'\"", UseShellExecute = true }); } catch { }
+        // Absolute executables (B11); directory via WorkingDirectory, no cd strings (B12).
+        var wt = BanglaHost.Core.SystemExe.WindowsTerminal();
+        if (wt is not null)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo { FileName = wt, WorkingDirectory = d, UseShellExecute = false };
+                psi.ArgumentList.Add("-d"); psi.ArgumentList.Add(d);
+                Process.Start(psi);
+                return;
+            }
+            catch { }
+        }
+        try
+        {
+            var psi = new ProcessStartInfo { FileName = BanglaHost.Core.SystemExe.PowerShell, WorkingDirectory = d, UseShellExecute = false };
+            psi.ArgumentList.Add("-NoExit");
+            Process.Start(psi);
+        }
+        catch { }
     }
 
     private Task Info(string title, string body)

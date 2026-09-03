@@ -23,8 +23,35 @@ public static class Updater
     private const string StoreDeepLink  = "ms-windows-store://pdp/?productid=" + StoreProductId;
     private const string StoreWebUrl    = "https://apps.microsoft.com/detail/" + StoreProductId;
 
-    public static string CurrentVersion =>
-        Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : "0.0.0";
+    /// <summary>
+    /// The version we compare against the Store listing.
+    ///
+    /// Two bugs lived in the old one-liner:
+    /// <list type="bullet">
+    /// <item>It returned three components ("1.6.0"). The Store always publishes four ("1.6.0.0"),
+    /// and <see cref="Version"/> treats an absent revision as −1, so 1.6.0.0 &gt; 1.6.0 — the app told
+    /// every user an update was available immediately after they had just updated, forever.</item>
+    /// <item>It read the *assembly* version. For a Store install the authoritative number is the
+    /// MSIX package version from the manifest, which is what the Store compares against; the two
+    /// diverge whenever the manifest is bumped without a rebuild.</item>
+    /// </list>
+    /// </summary>
+    public static string CurrentVersion
+    {
+        get
+        {
+            // Packaged (Store/MSIX): the manifest version is what the Store listing reports.
+            try
+            {
+                var pv = Windows.ApplicationModel.Package.Current.Id.Version;
+                return $"{pv.Major}.{pv.Minor}.{pv.Build}.{pv.Revision}";
+            }
+            catch { /* unpackaged — Package.Current throws; fall through */ }
+
+            var v = Assembly.GetExecutingAssembly().GetName().Version;
+            return v is null ? "0.0.0.0" : $"{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}.{Math.Max(v.Revision, 0)}";
+        }
+    }
 
     public sealed record Result(bool UpdateAvailable, string Latest, string? AssetUrl, string? Notes, string? Error);
 
@@ -149,9 +176,18 @@ public static class Updater
         catch { return null; }
     }
 
-    private static int Compare(string a, string b) =>
-        (Version.TryParse(Trim(a), out var va) ? va : new Version(0, 0)).CompareTo(
-         Version.TryParse(Trim(b), out var vb) ? vb : new Version(0, 0));
+    /// <summary>
+    /// Compare two version strings with missing components treated as 0.
+    /// <c>Version.CompareTo</c> treats an absent Build/Revision as −1, so a plain CompareTo makes
+    /// "1.6" &lt; "1.6.0" &lt; "1.6.0.0" — three spellings of the same release.
+    /// </summary>
+    internal static int Compare(string a, string b) => Norm(a).CompareTo(Norm(b));
+
+    private static Version Norm(string s)
+    {
+        if (!Version.TryParse(Trim(s), out var v)) return new Version(0, 0, 0, 0);
+        return new Version(v.Major, v.Minor, Math.Max(v.Build, 0), Math.Max(v.Revision, 0));
+    }
 
     private static string Trim(string s) => (s ?? "").Trim().TrimStart('v', 'V');
 

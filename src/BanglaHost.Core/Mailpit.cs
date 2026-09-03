@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -17,12 +17,7 @@ public static class MailpitServer
 
     public static bool Running()
     {
-        try
-        {
-            using var c = new TcpClient();
-            return c.ConnectAsync("127.0.0.1", UiPort).Wait(500) && c.Connected;
-        }
-        catch { return false; }
+        return NetUtils.IsListening(UiPort, 500);
     }
 
     public static bool Start()
@@ -40,9 +35,12 @@ public static class MailpitServer
             WindowStyle = ProcessWindowStyle.Hidden,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
-        var p = Process.Start(psi);
-        if (p is null) return false;
-        JobManager.Add(p);
+        var p = Process.Start(psi);
+
+        if (p is null) return false;
+
+        JobManager.Add(p);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile, JsonSerializer.Serialize(new { pid = p.Id, ui = UiPort, smtp = SmtpPort }));
         for (var i = 0; i < 10 && !Running(); i++) System.Threading.Thread.Sleep(300);
@@ -73,8 +71,7 @@ public static class MailhogServer
 
     public static bool Running()
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", UiPort).Wait(500) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(UiPort, 500);
     }
 
     public static bool Start()
@@ -92,9 +89,12 @@ public static class MailhogServer
             RedirectStandardOutput = false, RedirectStandardError = false,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
-        var p = Process.Start(psi);
-        if (p is null) return false;
-        JobManager.Add(p);
+        var p = Process.Start(psi);
+
+        if (p is null) return false;
+
+        JobManager.Add(p);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile, JsonSerializer.Serialize(new { pid = p.Id, ui = UiPort, smtp = SmtpPort }));
         for (var i = 0; i < 10 && !Running(); i++) System.Threading.Thread.Sleep(300);

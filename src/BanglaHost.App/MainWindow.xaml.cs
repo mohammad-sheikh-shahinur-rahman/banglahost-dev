@@ -29,11 +29,11 @@ public sealed partial class MainWindow : Window
         _tray = new TrayIcon($"BanglaHost {Updater.CurrentVersion} — local web stack", icon);
         _tray.OpenRequested += () => DispatcherQueue?.TryEnqueue(ShowFromTray);
         _tray.QuitRequested += () => DispatcherQueue?.TryEnqueue(QuitApp);
-        _tray.StartAllRequested   += () => System.Threading.Tasks.Task.Run(() => { try { EngineHost.Instance.Engine.Start("all"); } catch { } });
-        _tray.StopAllRequested    += () => System.Threading.Tasks.Task.Run(() => { try { EngineHost.Instance.Engine.Stop("all"); } catch { } });
-        _tray.RestartAllRequested += () => System.Threading.Tasks.Task.Run(() => { try { EngineHost.Instance.Engine.Restart("all"); } catch { } });
+        _tray.StartAllRequested   += () => BackgroundWork.RunGuarded(() => EngineHost.Instance.Engine.Start("all"), "tray:StartAll");
+        _tray.StopAllRequested    += () => BackgroundWork.RunGuarded(() => EngineHost.Instance.Engine.Stop("all"), "tray:StopAll");
+        _tray.RestartAllRequested += () => BackgroundWork.RunGuarded(() => EngineHost.Instance.Engine.Restart("all"), "tray:RestartAll");
 
-        // Close â†’ hide to tray when "keep running" is on (Settings); otherwise really quit.
+        // Close → hide to tray when "keep running" is on (Settings); otherwise really quit.
         AppWindow.Closing += (_, e) =>
         {
             if (_reallyQuit || !Config.Load().MinimizeToTray) { _tray.Dispose(); return; }
@@ -87,7 +87,7 @@ public sealed partial class MainWindow : Window
             if (await ask.ShowAsync() != ContentDialogResult.Primary) return true;   // chose Later — still a handled first run
 
             // Offer to add Defender exclusions BEFORE anything downloads, so AV can't quarantine the
-            // server binaries BanglaHost fetches. Defender-only (other AVs have no API â†’ manual, see README).
+            // server binaries BanglaHost fetches. Defender-only (other AVs have no API → manual, see README).
             var avDlg = new ContentDialog
             {
                 Title = "Protect BanglaHost from antivirus (recommended)",

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BanglaHost.App.Services;
 using BanglaHost.Core;
@@ -17,6 +18,11 @@ public sealed partial class DashboardPage : Page
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool _loading, _pageSizeSet;
+    // One refresh at a time: overlapping ticks are dropped, never queued (A1).
+    // Without this the 2 s timer re-entered an unguarded async void, piled
+    // snapshots 2–3 deep on slow machines and starved the thread pool.
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
+    private CancellationTokenSource? _cts;
     private readonly System.Collections.Generic.Queue<double> _cpuHist = new();
     private string _pmaUrl = "", _admUrl = "", _mailUrl = "";
 
@@ -33,16 +39,17 @@ public sealed partial class DashboardPage : Page
         LogBox.Text = EngineHost.Instance.LogText;
     }
 
-    private void OnTimerTick(object? sender, object e) => Refresh();
-    private void OnSiteListChanged(object? sender, EventArgs e) => Refresh();
+    private void OnTimerTick(object? sender, object e) => _ = RefreshAsync();
+    private void OnSiteListChanged(object? sender, EventArgs e) => _ = RefreshAsync();
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
+        _cts = new CancellationTokenSource();
         EngineHost.Instance.LogAppended += OnLog;
         _timer.Tick += OnTimerTick;
         SiteList.Changed += OnSiteListChanged;
-        Refresh(); 
-        _timer.Start(); 
+        _ = RefreshAsync();
+        _timer.Start();
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -51,6 +58,9 @@ public sealed partial class DashboardPage : Page
         _timer.Tick -= OnTimerTick;
         SiteList.Changed -= OnSiteListChanged;
         EngineHost.Instance.LogAppended -= OnLog;
+        try { _cts?.Cancel(); } catch { }
+        try { _cts?.Dispose(); } catch { }
+        _cts = null;
         base.OnNavigatedFrom(e);
     }
 
@@ -61,13 +71,38 @@ public sealed partial class DashboardPage : Page
             LogScroll.ChangeView(null, LogScroll.ScrollableHeight, null);
         });
 
-    private async void Refresh()
+    /// <summary>Guarded refresh: drops the tick when one is in flight, measures the
+    /// work and reschedules afterwards so a slow machine gets slower refreshes
+    /// instead of a growing backlog (A1). In-flight work cancels on navigate-away.</summary>
+    private async Task RefreshAsync()
     {
+        if (!await _refreshGate.WaitAsync(0).ConfigureAwait(true)) return;   // drop, don't queue
+        var token = _cts?.Token ?? CancellationToken.None;
+        _timer.Stop();   // self-rescheduling: restart only after the work lands
         try
         {
-        Snapshot snap;
-        try { snap = await EngineHost.Instance.Snapshot(); } catch { return; }
+            Snapshot snap;
+            try { snap = await EngineHost.Instance.Snapshot(token).ConfigureAwait(true); }
+            catch (OperationCanceledException) { return; }
+            catch { return; }
+            if (token.IsCancellationRequested) return;
+            ApplySnapshot(snap);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "DashboardRefresh"); }
+        finally
+        {
+            try { _refreshGate.Release(); } catch { }
+            if (!token.IsCancellationRequested && _cts is not null) _timer.Start();
+        }
+    }
 
+    private void ApplySnapshot(Snapshot snap)
+    {
+        // Pure UI updates, no I/O. Runs on the dispatcher (callers ConfigureAwait(true)).
+        if (XamlRoot is null) return;
+        try
+        {
         bool Running(string key) => snap.Services.FirstOrDefault(s => s.Key == key)?.Running ?? false;
         var phpVers = snap.Services.Where(s => s.Role == ServiceRole.Php && s.Key.StartsWith("php@") && s.Installed)
                                    .Select(s => s.Key["php@".Length..]).OrderByDescending(v => v).ToList();
@@ -108,9 +143,9 @@ public sealed partial class DashboardPage : Page
         }
         CpuSpark.Points = pts;
         var (mu, mt, mp) = SystemMetrics.Memory(); MemText.Text = $"{mu:0.0} / {mt:0.0} GB";
-        DispatcherQueue?.TryEnqueue(() => { try { MemBar.Value = mp; } catch { } }); // WinUI 3 ProgressBar can ACCESS_VIOLATE mid-layout
+        SetBar(MemBar, mp);
         var (du, dt, dp) = SystemMetrics.Disk(); DiskText.Text = $"{du:0} / {dt:0} GB";
-        DispatcherQueue?.TryEnqueue(() => { try { DiskBar.Value = dp; } catch { } });
+        SetBar(DiskBar, dp);
         var (down, up) = SystemMetrics.Network();
         NetDown.Text = $"Down  {Rate(down)}"; NetUp.Text = $"Up  {Rate(up)}";
 
@@ -180,8 +215,25 @@ public sealed partial class DashboardPage : Page
         SetTool(snap, "adminer",    AdmToggle, AdmOpen, AdmStatus, ref _admUrl);
         SetTool(snap, "mailpit",    MailToggle, MailOpen, MailStatus, ref _mailUrl);
         _loading = false;
-        } catch (OperationCanceledException) { }
-    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+        }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "DashboardApply"); }
+    }
+
+    /// <summary>
+    /// Assign a metric bar inline, in the same dispatcher turn as its label (C14).
+    /// The old code deferred via TryEnqueue + swallowed everything, which both made
+    /// the race with page teardown MORE likely and hid the real exception type.
+    /// A torn-down page is guarded by the liveness check instead; a genuine fault
+    /// is logged so it can actually be diagnosed.
+    /// </summary>
+    private void SetBar(ProgressBar bar, double value)
+    {
+        if (XamlRoot is null || !IsLoaded) return;
+        DispatcherQueue?.TryEnqueue(() =>
+        {
+            if (XamlRoot is null || !IsLoaded) return;
+            bar.Value = Math.Clamp(value, bar.Minimum, bar.Maximum);
+        });
     }
 
     private static void SetTool(Snapshot snap, string name, ToggleSwitch toggle, Button open, TextBlock status, ref string url)
@@ -210,7 +262,7 @@ public sealed partial class DashboardPage : Page
         Busy.IsActive = true;
         var (ok, output) = await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.ToolSet(tool, on));
         Busy.IsActive = false;
-        Refresh();
+        _ = RefreshAsync();
         if (!ok && output.Length > 0)
         {
             if (this.Content == null || this.XamlRoot == null) return;
@@ -236,7 +288,7 @@ public sealed partial class DashboardPage : Page
         StartBtn.IsEnabled = StopBtn.IsEnabled = RestartBtn.IsEnabled = false;
         await EngineHost.Instance.Run(action);
         Busy.IsActive = false;
-        Refresh();   // recomputes the correct enabled/highlight state
+        _ = RefreshAsync();   // recomputes the correct enabled/highlight state
     }
 
     private static void Launch(string target)

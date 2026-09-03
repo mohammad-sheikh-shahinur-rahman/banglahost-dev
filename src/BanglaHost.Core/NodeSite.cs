@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.Json;
 
@@ -60,8 +60,7 @@ public static class NodeSite
 
     private static bool PortOpen(int port)
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", port).Wait(400) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(port, 400);
     }
 
     public static bool Running(string name)
@@ -80,8 +79,11 @@ public static class NodeSite
         Directory.CreateDirectory(Paths.Logs);
         var psi = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
-            Arguments = $"/c \"{p.Cmd} > \"{log}\" 2>&1\"",
+            // Absolute path: a bare "cmd.exe" resolves via PATH and can be
+            // planted by an earlier PATH entry (B11). The user-authored command
+            // itself intentionally runs under cmd (npm scripts, .cmd shims).
+            FileName = SystemExe.Cmd,
+            Arguments = $"/d /c \"{p.Cmd} > \"{log}\" 2>&1\"",
             WorkingDirectory = p.Dir,
             UseShellExecute = false, CreateNoWindow = true,
             // Do NOT set RedirectStandardOutput/Error here: the shell-level > "log" 2>&1
@@ -174,22 +176,15 @@ public static class NodeSite
     {
         var dir = ProcDir(name, which);
         if (dir.Length == 0 || !Directory.Exists(dir)) return (false, $"no {which} directory");
-        var psi = new ProcessStartInfo
-        {
-            FileName = "cmd.exe", Arguments = "/c npm install",
-            WorkingDirectory = dir, UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,
-        };
-        var nodeBin = Tools.NodeBinDir();
-        if (nodeBin is not null) psi.Environment["PATH"] = nodeBin + ";" + (Environment.GetEnvironmentVariable("PATH") ?? "");
-        try
-        {
-            var p = Process.Start(psi)!;
-            var _errT = p.StandardError.ReadToEndAsync(); var o = p.StandardOutput.ReadToEnd(); var e = _errT.Result;
-            p.WaitForExit();
-            return (p.ExitCode == 0, (o + e).Trim());
-        }
-        catch (Exception ex) { return (false, ex.Message); }
+        // npm is a .cmd shim so cmd is required; absolute path (B11), bounded wait
+        // with concurrent pipe reads instead of the unbounded sequential pair (C2/C5).
+        var res = ProcRunner.Run(SystemExe.Cmd, new[] { "/d", "/c", "npm install" },
+            workingDir: dir, timeoutMs: 600_000,
+            env: Tools.NodeBinDir() is { } nb
+                ? new Dictionary<string, string> { ["PATH"] = nb + ";" + (Environment.GetEnvironmentVariable("PATH") ?? "") }
+                : null);
+        if (res.TimedOut) return (false, "npm install timed out after 10 minutes");
+        return (res.ExitCode == 0, res.All.Trim());
     }
 
     /// <summary>Render the nginx reverse-proxy vhost for a Node-app site.</summary>

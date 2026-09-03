@@ -15,6 +15,43 @@ public sealed partial class PackageManagerPage : Page
 {
     private string _selectedPath = "";
 
+    // ── output buffering (C6) ────────────────────────────────────────────
+    // The old handler did LogViewer.Text += line per output line: O(n²) string
+    // copies plus a full TextBox relayout on the UI thread per line — thousands
+    // per npm/composer install. Lines now queue off-thread and flush in batches
+    // with a cap, so one install costs a handful of assignments, not thousands.
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> _pending = new();
+    private int _flushQueued;
+    private readonly System.Collections.Generic.LinkedList<string> _lines = new();
+    private const int MaxLines = 5000;
+
+    private void ResetLog()
+    {
+        while (_pending.TryDequeue(out _)) { }
+        _lines.Clear();
+        LogViewer.Text = "";
+    }
+
+    private void AppendLog(string line)
+    {
+        _pending.Enqueue(line);
+        // One flush per burst, not one per line.
+        if (System.Threading.Interlocked.Exchange(ref _flushQueued, 1) == 0)
+            DispatcherQueue?.TryEnqueue(FlushLog);
+    }
+
+    private void FlushLog()
+    {
+        System.Threading.Interlocked.Exchange(ref _flushQueued, 0);
+        if (_pending.IsEmpty) return;
+        while (_pending.TryDequeue(out var line))
+        {
+            _lines.AddLast(line);
+            if (_lines.Count > MaxLines) _lines.RemoveFirst();
+        }
+        LogViewer.Text = string.Join('\n', _lines);
+    }
+
     public PackageManagerPage()
     {
         InitializeComponent();
@@ -35,7 +72,7 @@ public sealed partial class PackageManagerPage : Page
         catch (OperationCanceledException) { /* ignore */ }
         catch (Exception ex)
         {
-            LogViewer.Text += $"Error loading sites: {ex.Message}\n";
+            AppendLog($"Error loading sites: {ex.Message}\n");
         }
     }
 
@@ -58,7 +95,7 @@ public sealed partial class PackageManagerPage : Page
         catch (OperationCanceledException) { /* ignore */ }
         catch (Exception ex)
         {
-            LogViewer.Text += $"Error: {ex.Message}\n";
+            AppendLog($"Error: {ex.Message}\n");
         }
     }
 
@@ -71,7 +108,7 @@ public sealed partial class PackageManagerPage : Page
         catch (OperationCanceledException) { /* ignore */ }
         catch (Exception ex)
         {
-            LogViewer.Text += $"Error: {ex.Message}\n";
+            AppendLog($"Error: {ex.Message}\n");
         }
     }
 
@@ -79,40 +116,45 @@ public sealed partial class PackageManagerPage : Page
     {
         if (string.IsNullOrEmpty(_selectedPath)) return;
 
-        LogViewer.Text = $"> {cmd} {args}\n";
+        ResetLog();
+        AppendLog($"> {cmd} {args}");
         ComposerBtn.IsEnabled = false;
         NpmBtn.IsEnabled = false;
 
         try
         {
+            // Absolute cmd (B11). cmd/args are fixed literals from the buttons above,
+            // never free text — there is no injection surface here by construction.
             var psi = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/c {cmd} {args}",
+                FileName = BanglaHost.Core.SystemExe.Cmd,
                 WorkingDirectory = _selectedPath,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true
             };
+            psi.ArgumentList.Add("/d");
+            psi.ArgumentList.Add("/c");
+            psi.ArgumentList.Add($"{cmd} {args}");
 
             using var p = Process.Start(psi);
             if (p != null)
             {
-                p.OutputDataReceived += (s, e) => { if (e.Data != null) DispatcherQueue?.TryEnqueue(() => LogViewer.Text += e.Data + "\n"); };
-                p.ErrorDataReceived += (s, e) => { if (e.Data != null) DispatcherQueue?.TryEnqueue(() => LogViewer.Text += e.Data + "\n"); };
+                p.OutputDataReceived += (s, e) => { if (e.Data != null) AppendLog(e.Data); };
+                p.ErrorDataReceived += (s, e) => { if (e.Data != null) AppendLog(e.Data); };
 
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
 
                 await p.WaitForExitAsync();
-                DispatcherQueue?.TryEnqueue(() => LogViewer.Text += $"\nProcess exited with code {p.ExitCode}\n");
+                AppendLog($"\nProcess exited with code {p.ExitCode}");
             }
         }
         catch (OperationCanceledException) { /* ignore */ }
         catch (Exception ex)
         {
-            LogViewer.Text += $"\nError: {ex.Message}\n";
+            AppendLog($"\nError: {ex.Message}\n");
         }
 
         ComposerBtn.IsEnabled = true;

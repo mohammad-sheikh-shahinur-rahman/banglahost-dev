@@ -7,7 +7,7 @@ namespace BanglaHost.App.Services;
 /// Minimal system-tray icon via raw Shell_NotifyIcon (no third-party package — the
 /// WinUI XAML compiler choked on H.NotifyIcon's markup). Hosts a message-only window
 /// on the UI thread so the WinUI message pump delivers the click callbacks.
-/// Left-click / double-click → <see cref="OpenRequested"/>; right-click → a popup
+/// Left-click / double-click â†’ <see cref="OpenRequested"/>; right-click â†’ a popup
 /// menu (Open / Quit) raising <see cref="OpenRequested"/> / <see cref="QuitRequested"/>.
 /// </summary>
 public sealed class TrayIcon : IDisposable
@@ -36,6 +36,9 @@ public sealed class TrayIcon : IDisposable
     private readonly string _className = "BanglaHostTrayWnd";
     private readonly string _tip;
     private bool _added;
+    private IntPtr _hIcon;
+    private bool _ownsIcon;
+    private bool _disposed;
 
     public TrayIcon(string tooltip, string? iconPath = null)
     {
@@ -49,7 +52,7 @@ public sealed class TrayIcon : IDisposable
         };
         RegisterClass(ref wc);
         _hwnd = CreateWindowEx(0, _className, "BanglaHostTray", 0, 0, 0, 0, 0,
-                               HWND_MESSAGE, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
+                               IntPtr.Zero, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
 
         var data = NewData(tooltip);
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
@@ -58,7 +61,9 @@ public sealed class TrayIcon : IDisposable
         var loaded = iconPath is not null && File.Exists(iconPath)
             ? LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
             : IntPtr.Zero;
-        data.hIcon = loaded != IntPtr.Zero ? loaded : LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        _ownsIcon = loaded != IntPtr.Zero;
+        _hIcon = _ownsIcon ? loaded : LoadIcon(IntPtr.Zero, IDI_APPLICATION);
+        data.hIcon = _hIcon;
         data.szTip = tooltip;
         _added = Shell_NotifyIcon(NIM_ADD, ref data);
     }
@@ -97,11 +102,38 @@ public sealed class TrayIcon : IDisposable
         return DefWindowProc(hwnd, msg, wParam, lParam);
     }
 
+    private readonly System.Collections.Generic.Dictionary<int, string> _siteCmdMap = new();
+
     private void ShowMenu()
     {
         var menu = CreatePopupMenu();
         AppendMenu(menu, 0, CMD_OPEN, "Open BanglaHost");
         AppendMenu(menu, 0x800, 0, null);          // MF_SEPARATOR
+        
+        try
+        {
+            var engineHost = BanglaHost.App.Services.EngineHost.Instance;
+            if (engineHost?.Engine != null)
+            {
+                var api = engineHost.Engine.Api();
+                if (api.Sites != null && api.Sites.Count > 0)
+                {
+                    _siteCmdMap.Clear();
+                    var sitesMenu = CreatePopupMenu();
+                    int siteCmdId = 1000;
+                    foreach (var site in api.Sites)
+                    {
+                        AppendMenu(sitesMenu, 0, siteCmdId, site.Domain);
+                        _siteCmdMap[siteCmdId] = (site.Secure ? "https://" : "http://") + site.Domain;
+                        siteCmdId++;
+                    }
+                    AppendMenu(menu, 0x10, sitesMenu, "Sites"); // 0x10 = MF_POPUP
+                    AppendMenu(menu, 0x800, 0, null);
+                }
+            }
+        }
+        catch { }
+
         AppendMenu(menu, 0, CMD_START, "Start all services");
         AppendMenu(menu, 0, CMD_STOP, "Stop all services");
         AppendMenu(menu, 0, CMD_RESTART, "Restart all");
@@ -110,7 +142,15 @@ public sealed class TrayIcon : IDisposable
         GetCursorPos(out var pt);
         SetForegroundWindow(_hwnd);                 // so the menu dismisses on click-away
         var cmd = TrackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.X, pt.Y, 0, _hwnd, IntPtr.Zero);
+        PostMessage(_hwnd, 0, IntPtr.Zero, IntPtr.Zero); // force task switch so it doesn't double-trigger
         DestroyMenu(menu);
+
+        if (cmd >= 1000 && _siteCmdMap.TryGetValue(cmd, out var url) && !string.IsNullOrEmpty(url))
+        {
+            try { using (System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true })) { } } catch { }
+            return;
+        }
+
         switch (cmd)
         {
             case CMD_OPEN:    OpenRequested?.Invoke(); break;
@@ -123,12 +163,16 @@ public sealed class TrayIcon : IDisposable
 
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         if (_added) { var d = NewData(""); Shell_NotifyIcon(NIM_DELETE, ref d); _added = false; }
         if (_hwnd != IntPtr.Zero) DestroyWindow(_hwnd);
         UnregisterClass(_className, GetModuleHandle(null));
+        if (_ownsIcon && _hIcon != IntPtr.Zero) { DestroyIcon(_hIcon); _hIcon = IntPtr.Zero; }
     }
 
-    // ── interop ──────────────────────────────────────────────────────────────
+    // â”€â”€ interop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private delegate IntPtr WndProcDelegate(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)]
@@ -165,14 +209,16 @@ public sealed class TrayIcon : IDisposable
     [DllImport("user32.dll")] private static extern bool DestroyWindow(IntPtr hwnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr DefWindowProc(IntPtr h, uint m, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] private static extern IntPtr LoadIcon(IntPtr inst, int name);
+    [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr hIcon);
     private const uint IMAGE_ICON = 1, LR_LOADFROMFILE = 0x0010;
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr LoadImage(IntPtr inst, string name, uint type, int cx, int cy, uint load);
     [DllImport("user32.dll")] private static extern IntPtr CreatePopupMenu();
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(IntPtr menu, uint flags, int id, string? item);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool AppendMenu(IntPtr menu, uint flags, nint id, string? item);
     [DllImport("user32.dll")] private static extern bool DestroyMenu(IntPtr menu);
     [DllImport("user32.dll")] private static extern int TrackPopupMenu(IntPtr menu, uint flags, int x, int y, int res, IntPtr hwnd, IntPtr rect);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT pt);
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr w, IntPtr l);
     [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool Shell_NotifyIcon(uint msg, ref NOTIFYICONDATA data);
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr GetModuleHandle(string? name);
 }

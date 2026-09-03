@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 
@@ -19,21 +19,16 @@ public static class PgServer
 
     public static bool Running()
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", Port).Wait(600) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(Port, 600);
     }
 
-    private static (int code, string output) RunWait(string exe, string args)
+    /// <summary>Short-lived helper (initdb/pg_ctl). Bounded wait, concurrent pipe
+    /// reads — the old inline ReadToEnd+WaitForExit pair deadlocked on chatty
+    /// output and hung forever on a wedged child (C2/C5).</summary>
+    private static (int code, string output) RunWait(string exe, string[] args, int timeoutMs = 120_000)
     {
-        var psi = new ProcessStartInfo
-        {
-            FileName = exe, Arguments = args, UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(exe)!,
-        };
-        var p = Process.Start(psi)!;
-        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        p.WaitForExit();
-        return (p.ExitCode, outp);
+        var res = ProcRunner.Run(exe, args, workingDir: Path.GetDirectoryName(exe), timeoutMs: timeoutMs);
+        return (res.TimedOut ? -1 : res.ExitCode, res.TimedOut ? $"timed out after {timeoutMs} ms\n{res.All}" : res.All);
     }
 
     public static (bool ok, string msg) EnsureInitialized()
@@ -45,7 +40,7 @@ public static class PgServer
         if (Directory.EnumerateFileSystemEntries(DataDir).Any())
             return (false, $"data dir not empty and not initialized: {DataDir}");
         // -U postgres superuser, trust auth (passwordless local), UTF8.
-        var (code, outp) = RunWait(initdb, $"-U postgres -A trust --encoding=UTF8 -D \"{DataDir}\"");
+        var (code, outp) = RunWait(initdb, new[] { "-U", "postgres", "-A", "trust", "--encoding=UTF8", "-D", DataDir });
         if (!Initialized) return (false, "initdb failed:\n" + outp);
         return (true, "initialized fresh PostgreSQL data dir (postgres · trust auth)");
     }
@@ -61,7 +56,7 @@ public static class PgServer
         Directory.CreateDirectory(Paths.Logs);
         // -w wait for ready; bind loopback only.
         var (code, outp) = RunWait(pgctl,
-            $"start -D \"{DataDir}\" -l \"{LogFile}\" -o \"-p {Port} -c listen_addresses=127.0.0.1\" -w -t 30");
+            new[] { "start", "-D", DataDir, "-l", LogFile, "-o", $"-p {Port} -c listen_addresses=127.0.0.1", "-w", "-t", "30" });
         for (var i = 0; i < 20 && !Running(); i++) System.Threading.Thread.Sleep(400);
         return Running() ? (true, $"PostgreSQL started on :{Port} (postgres · trust)") : (false, "PostgreSQL failed to start:\n" + outp);
     }
@@ -70,7 +65,7 @@ public static class PgServer
     {
         var pgctl = Tools.PgCtlExe();
         if (pgctl is not null && Running())
-            RunWait(pgctl, $"stop -D \"{DataDir}\" -m fast -w -t 20");
+            RunWait(pgctl, new[] { "stop", "-D", DataDir, "-m", "fast", "-w", "-t", "20" });
     }
 }
 
@@ -79,22 +74,16 @@ public static class PgDatabase
 {
     private static readonly string[] SystemDbs = { "postgres", "template0", "template1" };
 
-    private static (int code, string output) Psql(string args)
+    private static (int code, string output) Psql(params string[] extraArgs)
     {
         var psql = Tools.PsqlExe() ?? throw new BhException("psql not found — install PostgreSQL");
-        var psi = new ProcessStartInfo
-        {
-            FileName = psql,
-            Arguments = $"-h 127.0.0.1 -p {PgServer.Port} -U postgres {args}",
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,
-            WorkingDirectory = Path.GetDirectoryName(psql)!,
-        };
-        psi.Environment["PGPASSWORD"] = "";   // trust auth
-        var p = Process.Start(psi)!;
-        var _errT = p.StandardError.ReadToEndAsync(); var outp = p.StandardOutput.ReadToEnd(); var err = _errT.Result;
-        p.WaitForExit();
-        return (p.ExitCode, outp + err);
+        var args = new List<string> { "-h", "127.0.0.1", "-p", PgServer.Port.ToString(), "-U", "postgres" };
+        args.AddRange(extraArgs);
+        // trust auth: no password anywhere, command line or otherwise.
+        var res = ProcRunner.Run(psql, args, workingDir: Path.GetDirectoryName(psql),
+            timeoutMs: 60_000,
+            env: new Dictionary<string, string> { ["PGPASSWORD"] = "" });
+        return (res.TimedOut ? -1 : res.ExitCode, res.All);
     }
 
     private static void ValidName(string name)
@@ -106,7 +95,7 @@ public static class PgDatabase
     public static IReadOnlyList<string> List()
     {
         if (!PgServer.Running()) return System.Array.Empty<string>();
-        var (code, outp) = Psql("-At -c \"SELECT datname FROM pg_database WHERE datistemplate = false;\"");
+        var (code, outp) = Psql("-At", "-c", "SELECT datname FROM pg_database WHERE datistemplate = false;");
         if (code != 0) return System.Array.Empty<string>();
         return outp.Split('\n', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
                    .Where(d => !SystemDbs.Contains(d)).ToList();
@@ -116,7 +105,7 @@ public static class PgDatabase
     {
         ValidName(name);
         if (!PgServer.Running()) throw new BhException("PostgreSQL not running — banglahost start postgresql");
-        var (code, outp) = Psql($"-c \"CREATE DATABASE \\\"{name}\\\";\"");
+        var (code, outp) = Psql("-c", $"CREATE DATABASE \"{name}\";");
         if (code != 0) throw new BhException("create failed:\n" + outp);
         return name;
     }
@@ -125,7 +114,7 @@ public static class PgDatabase
     {
         ValidName(name);
         if (!PgServer.Running()) throw new BhException("PostgreSQL not running — banglahost start postgresql");
-        var (code, outp) = Psql($"-c \"DROP DATABASE IF EXISTS \\\"{name}\\\";\"");
+        var (code, outp) = Psql("-c", $"DROP DATABASE IF EXISTS \"{name}\";");
         if (code != 0) throw new BhException("drop failed:\n" + outp);
     }
 }

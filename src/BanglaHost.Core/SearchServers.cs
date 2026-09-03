@@ -12,8 +12,7 @@ public static class Meilisearch
 
     public static bool Running()
     {
-        try { using var c = new TcpClient(); return c.ConnectAsync("127.0.0.1", Port).Wait(500) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(Port, 500);
     }
 
     public static bool Start()
@@ -28,9 +27,12 @@ public static class Meilisearch
             UseShellExecute = false, CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
-        var p = Process.Start(psi);
-        if (p is null) return false;
-        JobManager.Add(p);
+        var p = Process.Start(psi);
+
+        if (p is null) return false;
+
+        JobManager.Add(p);
+
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(RunFile, JsonSerializer.Serialize(new { pid = p.Id, port = Port }));
         for (var i = 0; i < 15 && !Running(); i++) System.Threading.Thread.Sleep(300);

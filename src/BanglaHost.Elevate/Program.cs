@@ -16,7 +16,13 @@ try
     {
         case "hosts-add":
             if (args.Length < 2 || !Hosts.IsValidDomain(args[1])) return 1;
+            // The privileged side re-validates INDEPENDENTLY of its caller (B5):
+            // an ip with newlines/tokens would become extra hosts lines machine-wide.
+            // Belt-and-braces: refuse control characters in every argument.
+            if (args.Any(a => a.Any(char.IsControl))) { Console.Error.WriteLine("refusing: control character in argument"); return 3; }
             var ip = args.Length > 2 ? args[2] : "127.0.0.1";
+            try { ip = Hosts.CanonicalIp(ip); }
+            catch (Exception ex) { Console.Error.WriteLine($"refusing: {ex.Message}"); return 2; }
             return Hosts.Add(args[1], ip) ? 0 : 1;
 
         case "hosts-remove":
@@ -33,7 +39,7 @@ try
                 Arguments = "-install",
                 UseShellExecute = false,
             })!;
-            p.WaitForExit();
+            if (!p.WaitForExit(120_000)) { try { p.Kill(true); } catch { } }
 
             // mkcert -install only trusts the CA for the CURRENT USER (CurrentUser\Root).
             // HTTPS-scanning security software (ESET, Kaspersky, Avast…) validates server certs
@@ -45,13 +51,18 @@ try
                 var caOut = Process.Start(new ProcessStartInfo
                 { FileName = mkc, Arguments = "-CAROOT", UseShellExecute = false, RedirectStandardOutput = true })!;
                 var caroot = caOut.StandardOutput.ReadToEnd().Trim();
-                caOut.WaitForExit();
+                if (!caOut.WaitForExit(30_000)) { try { caOut.Kill(true); } catch { } }
                 var rootPem = Path.Combine(caroot, "rootCA.pem");
                 if (File.Exists(rootPem))
                 {
-                    var cu = Process.Start(new ProcessStartInfo
-                    { FileName = "certutil.exe", Arguments = $"-addstore -f Root \"{rootPem}\"", UseShellExecute = false, CreateNoWindow = true })!;
-                    cu.WaitForExit();
+                var cu = Process.Start(new ProcessStartInfo
+                {
+                    // Absolute path: this process is elevated, so a PATH-resolved
+                    // certutil would be a privilege-escalation primitive (B11).
+                    FileName = Path.Combine(Environment.SystemDirectory, "certutil.exe"),
+                    Arguments = $"-addstore -f Root \"{rootPem}\"", UseShellExecute = false, CreateNoWindow = true
+                })!;
+                if (!cu.WaitForExit(60_000)) { try { cu.Kill(true); } catch { } }
                     if (cu.ExitCode != 0) Console.Error.WriteLine("certutil machine-store add failed (user-store trust still installed)");
                 }
             }

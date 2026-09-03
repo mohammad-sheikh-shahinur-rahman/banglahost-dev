@@ -30,6 +30,9 @@ public sealed class Engine
     {
         Hdr($"Initializing BanglaHost at {Paths.Home}");
         Paths.EnsureSkeleton();
+        // Reclaim stale installer archives/extraction staging (D5). Age-gated so a
+        // concurrent install's fresh files are never touched.
+        try { Paths.CleanTmp(); } catch { }
         foreach (var d in new[] { "client_body", "proxy", "fastcgi", "uwsgi", "scgi" })
             Directory.CreateDirectory(Path.Combine(Paths.Tmp, d));
         Directory.CreateDirectory(Path.Combine(Paths.Home, "nginx", "sites"));
@@ -779,33 +782,74 @@ public sealed class Engine
         if (Nginx.Running()) { Nginx.Stop(); System.Threading.Thread.Sleep(300); Nginx.Start(cfg); }
     }
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬ status / api Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ── status / api ─────────────────────────────────────────────────────────
     public Snapshot Api()
     {
         var cfg = Config.Load();
+        var enabled = Services.EnabledSet();          // one read, not 37 (D2)
+        var activeEngine = DbServer.ActiveEngine();   // one probe pair, not two (D3)
         var services = Services.All.Select(s =>
         {
             var installed = Services.Installed(s.Key, cfg);
-            var running = s.Role switch
-            {
-                ServiceRole.Web => (s.Key == "nginx" && Nginx.Running()) || (s.Key == "apache" && Apache.Running()),
-                ServiceRole.Php => PhpCgi.Running(Services.PhpVersion(s.Key, cfg)),
-                ServiceRole.Db    => s.Key switch
-                {
-                    "mysql"      => DbServer.ActiveEngine() == "mysql",
-                    "mariadb"    => DbServer.ActiveEngine() == "mariadb",
-                    "postgresql" => PgServer.Running(),
-                    _ => false,
-                },
-                ServiceRole.Mail  => (s.Key == "mailpit" && MailpitServer.Running()) || (s.Key == "mailhog" && MailhogServer.Running()),
-                ServiceRole.Cache => (s.Key == "redis" && Redis.Running()) || (s.Key == "memcached" && Memcached.Running()) || (s.Key == "valkey" && Valkey.Running()),
-                ServiceRole.Search => s.Key == "meilisearch" && Meilisearch.Running(),
-                ServiceRole.AI    => s.Key == "ollama" && Ollama.Running(),
-                _ => false,
-            };
-            return new Service(s.Key, s.Role, installed, running, "", Services.Enabled(s.Key, cfg));
+            var running = IsRunning(s.Key, s.Role, cfg, activeEngine);
+            return new Service(s.Key, s.Role, installed, running, "", enabled.Contains(s.Key));
         }).ToList();
         return new Snapshot(services, ListSites(cfg));
+    }
+
+    private static bool IsRunning(string key, ServiceRole role, Config cfg, string? activeEngine) =>
+        role switch
+        {
+            ServiceRole.Web => (key == "nginx" && Nginx.Running()) || (key == "apache" && Apache.Running()),
+            ServiceRole.Php => PhpCgi.Running(Services.PhpVersion(key, cfg)),
+            ServiceRole.Db => key switch
+            {
+                "mysql"      => activeEngine == "mysql",
+                "mariadb"    => activeEngine == "mariadb",
+                "postgresql" => PgServer.Running(),
+                _ => false,
+            },
+            ServiceRole.Mail  => (key == "mailpit" && MailpitServer.Running()) || (key == "mailhog" && MailhogServer.Running()),
+            ServiceRole.Cache => (key == "redis" && Redis.Running()) || (key == "memcached" && Memcached.Running()) || (key == "valkey" && Valkey.Running()),
+            ServiceRole.Search => key == "meilisearch" && Meilisearch.Running(),
+            ServiceRole.AI    => key == "ollama" && Ollama.Running(),
+            _ => false,
+        };
+
+    /// <summary>
+    /// Async snapshot with the liveness probes fanned out concurrently under one
+    /// shared ~1.2 s budget (D4). Sequential probes cost the SUM of every timeout;
+    /// on a machine where loopback is filtered that was 4–6 s per 2 s tick (A1).
+    /// A superseded snapshot cancels via <paramref name="ct"/>.
+    /// </summary>
+    public static async Task<Snapshot> ApiAsync(CancellationToken ct = default)
+    {
+        var cfg = Config.Load();
+        var enabled = Services.EnabledSet();
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        budget.CancelAfter(TimeSpan.FromMilliseconds(1200));
+
+        var activeEngineTask = Task.Run(() => DbServer.ActiveEngine(), budget.Token);
+        var runningTasks = Services.All.Select(s => Task.Run(() =>
+        {
+            budget.Token.ThrowIfCancellationRequested();
+            return IsRunning(s.Key, s.Role, cfg, null);
+        }, budget.Token)).ToArray();
+
+        string? activeEngine = null;
+        try { activeEngine = await activeEngineTask.ConfigureAwait(false); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
+        var running = await Task.WhenAll(runningTasks).ConfigureAwait(false);
+
+        // MySQL/MariaDB rows reflect the single ActiveEngine probe, not per-row probes.
+        var services = Services.All.Select((s, i) =>
+        {
+            var r = (s.Key is "mysql" or "mariadb") ? activeEngine == s.Key : running[i];
+            return new Service(s.Key, s.Role, Services.Installed(s.Key, cfg), r, "", enabled.Contains(s.Key));
+        }).ToList();
+        ct.ThrowIfCancellationRequested();
+        var sites = await Task.Run(() => ListSites(cfg), ct).ConfigureAwait(false);
+        return new Snapshot(services, sites);
     }
 
     public void Status()
@@ -1094,8 +1138,7 @@ public sealed class Engine
 
     private static bool PortInUse(int port)
     {
-        try { using var c = new System.Net.Sockets.TcpClient(); return c.ConnectAsync("127.0.0.1", port).Wait(400) && c.Connected; }
-        catch { return false; }
+        return NetUtils.IsListening(port, 400);
     }
 
     // Ã¢â€â‚¬Ã¢â€â‚¬ config Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬

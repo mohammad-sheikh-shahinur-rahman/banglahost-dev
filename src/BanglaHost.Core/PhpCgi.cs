@@ -53,13 +53,34 @@ public static class PhpCgi
     public static bool Start(string version)
     {
         if (Running(version)) return true;
-        var exe = Tools.PhpCgiExe(version);
-        if (exe is null) return false;
+        var proc = Spawn(version);
+        if (proc is null) return false;
 
-        // Tune the build's php.ini before launching (uploads + OPcache/JIT + realpath cache) so
-        // both nginx- and Apache-served PHP are fast. Idempotent + survives reinstalls (runs on
-        // every start, only writes when something differs). OPcache is the big WordPress win —
-        // Windows PHP ships it off, so every request recompiles all PHP without this.
+        // Watchdog
+        _ = System.Threading.Tasks.Task.Run(async () => {
+            var currentProc = proc;
+            while (true)
+            {
+                try { await currentProc.WaitForExitAsync(); } catch { }
+                currentProc.Dispose();
+
+                if (!File.Exists(RunFile(version))) return;
+                await System.Threading.Tasks.Task.Delay(1000);
+                if (!File.Exists(RunFile(version))) return;
+
+                currentProc = Spawn(version);
+                if (currentProc is null) return;
+            }
+        });
+
+        return true;
+    }
+
+    private static Process? Spawn(string version)
+    {
+        var exe = Tools.PhpCgiExe(version);
+        if (exe is null) return null;
+
         EnsureLimits(Path.GetDirectoryName(exe)!, version);
 
         var port = PortFor(version);
@@ -69,37 +90,18 @@ public static class PhpCgi
             Arguments = $"-b 127.0.0.1:{port}",
             UseShellExecute = false,
             CreateNoWindow = true,
-            // Redirect (and never read) so the daemon does NOT inherit the caller's
-            // console/stdout handle — otherwise a foreground shell stays "open" waiting
-            // on this long-running child. php-cgi -b logs to nginx, not stdout.
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
-        // PHP_FCGI_MAX_REQUESTS=0 → never recycle the listener.
         psi.Environment["PHP_FCGI_MAX_REQUESTS"] = "10000";
-        // PHP_FCGI_CHILDREN: spawn a pool of worker processes so one slow/cold request (a WordPress
-        // first-load phoning home, a heavy app compile) doesn't block every other site on this PHP
-        // version. Without it, php-cgi -b on Windows serializes to a SINGLE request at a time → 502s
-        // under multi-site load.
         psi.Environment["PHP_FCGI_CHILDREN"] = "4";
-        // Load BanglaHost's per-version conf.d (ionCube etc.) on top of the build's php.ini.
-        // Leading ';' keeps the compiled-in scan dir (Windows path-list separator).
         var confd = ConfDir(version);
         Directory.CreateDirectory(confd);
         psi.Environment["PHP_INI_SCAN_DIR"] = ";" + confd;
 
-        // ── Guarantee a usable Path + SystemRoot for the workers ────────────────────────────────
-        // The tray App can be launched with a STRIPPED environment (empty Path/SystemRoot — observed
-        // when it starts via its login-item/elevation path). php-cgi inherits that, and the FastCGI
-        // CHILD workers the master then spawns can't resolve the ionCube loader's dependency DLLs (the
-        // VC++ runtime in System32) → ionCube SILENTLY fails to load, breaking every ionCube-encoded
-        // app (e.g. WHMCS). A directly-launched php-cgi loads ionCube fine even with an empty env; only
-        // the master-spawned children are hit, and only when Path/SystemRoot are missing. Rebuild a
-        // sane Path (php dir + Windows system dirs) + SystemRoot so the workers load ionCube regardless
-        // of how the App itself was launched. Prepend our dirs; keep any inherited Path after them.
-        var sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);   // C:\Windows\System32
-        var winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);  // C:\Windows
+        var sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
+        var winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         var phpDir = Path.GetDirectoryName(exe)!;
         var pathParts = new List<string> { phpDir, sysDir, Path.Combine(sysDir, "Wbem"), winDir };
         if (psi.Environment.TryGetValue("Path", out var inheritedPath) && !string.IsNullOrWhiteSpace(inheritedPath))
@@ -111,28 +113,13 @@ public static class PhpCgi
         if (!psi.Environment.TryGetValue("windir", out var wd) || string.IsNullOrWhiteSpace(wd))
             psi.Environment["windir"] = winDir;
 
-        var proc = Process.Start(psi);
+        var p = Process.Start(psi);
+        if (p is null) return null;
 
-        if (proc is null) return false;
-
-        JobManager.Add(proc);
-
+        JobManager.Add(p);
         Directory.CreateDirectory(Paths.Run);
-        File.WriteAllText(RunFile(version),
-            JsonSerializer.Serialize(new PhpRun(version, port, proc.Id)));
-
-        // Watchdog
-        _ = System.Threading.Tasks.Task.Run(async () => {
-            try {
-                await proc.WaitForExitAsync();
-                if (!File.Exists(RunFile(version))) return;
-                await System.Threading.Tasks.Task.Delay(1000);
-                if (!File.Exists(RunFile(version))) return;
-                Start(version);
-            } catch { }
-        });
-
-        return true;
+        File.WriteAllText(RunFile(version), JsonSerializer.Serialize(new PhpRun(version, port, p.Id)));
+        return p;
     }
 
     /// <summary>BanglaHost's php.ini defaults — generous uploads + performance (OPcache/JIT/realpath).</summary>

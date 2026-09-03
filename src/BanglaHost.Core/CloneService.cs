@@ -113,58 +113,53 @@ public static class CloneService
     private static void PerformDatabaseClone(string srcDb, string destDb, Config cfg, Action<string> log)
     {
         log($"[Clone] Cloning database '{srcDb}' to '{destDb}'...");
-        
+        // Both names reach SQL (CREATE DATABASE `…`) and the client argv — a backtick
+        // or quote in either is injection, so refuse anything but plain identifiers (B9).
+        try
+        {
+            MySqlAuthFile.ValidIdentifier(srcDb, "source database");
+            MySqlAuthFile.ValidIdentifier(destDb, "destination database");
+        }
+        catch (Exception ex) { log($"[Clone] {ex.Message}"); return; }
+
         var dumpExe = Path.Combine(Paths.Bin, "mysql", "bin", "mysqldump.exe");
         if (!File.Exists(dumpExe)) dumpExe = Path.Combine(Paths.Bin, "mariadb", "bin", "mysqldump.exe");
         var mysqlExe = Tools.MysqlClientExe();
-        
+
         if (!File.Exists(dumpExe) || mysqlExe == null)
         {
             log($"[Clone] MySQL tools not found. Skipping DB clone.");
             return;
         }
 
-        var tempSql = Path.Combine(Path.GetTempPath(), $"{srcDb}_clone_{Guid.NewGuid():N}.sql");
-        var user = "root";
-        var pass = cfg.RootPassword;
-
-        Action<ProcessStartInfo> addAuth = (psi) => {
-            psi.ArgumentList.Add("-u"); psi.ArgumentList.Add(user);
-            if (!string.IsNullOrEmpty(pass)) psi.ArgumentList.Add($"-p{pass}");
-            psi.ArgumentList.Add("-P"); psi.ArgumentList.Add("3306");
-            psi.ArgumentList.Add("-h"); psi.ArgumentList.Add("127.0.0.1");
-        };
+        var tempSql = Path.Combine(Path.GetTempPath(), $"clone_{Guid.NewGuid():N}.sql");
+        // Credentials via a locked-down defaults file, never -p on the command line (B3).
+        using var auth = MySqlAuthFile.Create("root", cfg.RootPassword, 3306);
 
         try
         {
-            // 1. Dump safely
-            var psiDump = new ProcessStartInfo { FileName = dumpExe, UseShellExecute = false, CreateNoWindow = true };
-            psiDump.ArgumentList.Add("--opt");
-            addAuth(psiDump);
-            psiDump.ArgumentList.Add(srcDb);
-            psiDump.ArgumentList.Add($"--result-file={tempSql}");
-            using (var p = Process.Start(psiDump)) { p?.WaitForExit(); if (p?.ExitCode != 0) throw new BhException($"Dump failed for {srcDb}"); }
-            
-            // 2. Create new DB safely
-            var psiCreate = new ProcessStartInfo { FileName = mysqlExe, UseShellExecute = false, CreateNoWindow = true };
-            addAuth(psiCreate);
-            psiCreate.ArgumentList.Add("-e");
-            psiCreate.ArgumentList.Add($"CREATE DATABASE IF NOT EXISTS `{destDb}`;");
-            using (var p = Process.Start(psiCreate)) { p?.WaitForExit(); if (p?.ExitCode != 0) throw new BhException($"Failed to create database {destDb}"); }
-            
-            // 3. Import safely via Stream
-            var psiImport = new ProcessStartInfo { FileName = mysqlExe, UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true };
-            addAuth(psiImport);
-            psiImport.ArgumentList.Add(destDb);
-            using (var p = Process.Start(psiImport))
-            {
-                if (p != null)
-                {
-                    using (var fs = File.OpenRead(tempSql)) { fs.CopyTo(p.StandardInput.BaseStream); p.StandardInput.Close(); }
-                    p.WaitForExit();
-                    if (p.ExitCode != 0) throw new BhException($"Import failed for {destDb}");
-                }
-            }
+            // 1. Dump safely (bounded wait, concurrent pipe reads — was unbounded, C2/C5).
+            var dumpArgs = MySqlAuthFile.Apply(auth, "root", 3306);
+            dumpArgs.Add("--opt");
+            dumpArgs.Add(srcDb);
+            dumpArgs.Add($"--result-file={tempSql}");
+            var dump = ProcRunner.Run(dumpExe, dumpArgs, timeoutMs: 600_000);
+            if (!dump.Ok) throw new BhException($"Dump failed for {srcDb}: {(dump.TimedOut ? "timed out" : dump.StdErr.Split('\n').FirstOrDefault())}");
+
+            // 2. Create new DB safely.
+            var createArgs = MySqlAuthFile.Apply(auth, "root", 3306);
+            createArgs.Add("-e");
+            createArgs.Add($"CREATE DATABASE IF NOT EXISTS `{destDb}`;");
+            var create = ProcRunner.Run(mysqlExe, createArgs, timeoutMs: 60_000);
+            if (!create.Ok) throw new BhException($"Failed to create database {destDb}");
+
+            // 3. Import safely via stdin.
+            var importArgs = MySqlAuthFile.Apply(auth, "root", 3306);
+            importArgs.Add(destDb);
+            var sql = File.ReadAllText(tempSql);
+            var import = ProcRunner.RunAsync(mysqlExe, importArgs, timeoutMs: 600_000, stdin: sql)
+                                   .GetAwaiter().GetResult();
+            if (!import.Ok) throw new BhException($"Import failed for {destDb}");
         }
         catch (Exception ex)
         {
