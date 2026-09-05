@@ -449,7 +449,7 @@ public sealed class Engine
 
         var cfg = Config.Load();
         var domain = $"{name}.{cfg.Tld}";
-        root ??= Path.Combine(cfg.SitesRoot, name);
+        if (string.IsNullOrWhiteSpace(root)) root = Path.Combine(cfg.SitesRoot, name);
         if (string.IsNullOrEmpty(server)) server = cfg.DefaultWeb;
         if (server is not ("nginx" or "apache")) throw new BhException("--server must be nginx or apache");
         if (server == "apache" && !Apache.Available) throw new BhException("apache backend needs httpd â€” install Apache from the Services page first");
