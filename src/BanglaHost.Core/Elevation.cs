@@ -48,8 +48,15 @@ public static class Elevation
                 Verb = "runas",
                 WindowStyle = ProcessWindowStyle.Hidden,
             };
-            psi.ArgumentList.Add(verb);
-            foreach (var a in args) psi.ArgumentList.Add(a);
+            
+            // ArgumentList is ignored when UseShellExecute = true on Windows.
+            // We must serialize the arguments manually. For our known verbs
+            // (hosts-add, mkcert-install) the arguments never contain quotes or spaces,
+            // but we wrap them in quotes safely anyway.
+            var allArgs = new List<string> { verb };
+            allArgs.AddRange(args);
+            psi.Arguments = string.Join(" ", allArgs.Select(a => "\"" + a.Replace("\"", "\\\"") + "\""));
+            
             using var p = Process.Start(psi);
             if (p is null) return false;
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
