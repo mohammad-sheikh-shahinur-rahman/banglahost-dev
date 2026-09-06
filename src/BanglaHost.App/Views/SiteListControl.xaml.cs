@@ -26,7 +26,16 @@ public sealed class SiteRow
     public required string Server { get; init; }
     public bool NotSecure => !Secure;
     public string Url => (Secure ? "https://" : "http://") + Domain;
-    public Uri Uri => new(Url);
+    public Uri? Uri
+    {
+        get
+        {
+            // Corrupt vhosts can yield an empty domain — x:Bind evaluates Uri during render,
+            // and new("http://") throws UriFormatException taking the whole row down.
+            try { return string.IsNullOrWhiteSpace(Domain) ? null : new Uri(Url, UriKind.Absolute); }
+            catch { return null; }
+        }
+    }
     public string Badge => !string.IsNullOrEmpty(Php) && Php != "-" ? $"{Server} / php {Php}" : Server;
     public Brush DotBrush => new SolidColorBrush(Enabled ? Colors.SeaGreen : Colors.Gray);
 }
@@ -117,6 +126,9 @@ public sealed partial class SiteListControl : UserControl
     // ── helpers ──────────────────────────────────────────────────────────────────
     private new static string Tag(object s) => (s as FrameworkElement)?.Tag as string ?? "";
     private SiteRow? Row(string name) => _all.FirstOrDefault(r => r.Name == name);
+    private static bool IsProxyRow(SiteRow r) =>
+        string.IsNullOrWhiteSpace(r.Root) || r.Php == "-" ||
+        r.Server is "proxy" or "node" or "python";
     private static void Launch(string t)
     {
         try
@@ -281,10 +293,11 @@ public sealed partial class SiteListControl : UserControl
         }
         return null;
     }
-    private void Logs_Click(object s, RoutedEventArgs e)
+    private async void Logs_Click(object s, RoutedEventArgs e)
     {
         var p = System.IO.Path.Combine(Paths.Logs, $"{Tag(s)}-error.log");
         if (System.IO.File.Exists(p)) Launch(p);
+        else await Info("No log yet", $"No error log for '{Tag(s)}' yet — logs appear here after the first request or error.");
     }
 
     private async void Tools_Click(object s, RoutedEventArgs e)
@@ -315,13 +328,20 @@ public sealed partial class SiteListControl : UserControl
             outputBox.Text = $"Running {title}...\n";
             try
             {
+                if (string.IsNullOrWhiteSpace(fileName)) { outputBox.Text += "\nError: PHP is not installed — install it from Services first."; return; }
                 var psi = new System.Diagnostics.ProcessStartInfo { FileName = fileName, WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
                 foreach (var a in args) psi.ArgumentList.Add(a);
-                var p = System.Diagnostics.Process.Start(psi);
-                if (p == null) return;
-                await p.WaitForExitAsync();
-                outputBox.Text += await p.StandardOutput.ReadToEndAsync();
-                outputBox.Text += await p.StandardError.ReadToEndAsync();
+                using var p = System.Diagnostics.Process.Start(psi);
+                if (p == null) { outputBox.Text += "\nError: could not start process."; return; }
+                // Drain both pipes concurrently BEFORE waiting for exit — otherwise a chatty
+                // child fills the 4KB pipe and deadlocks (WaitForExit + ReadToEnd pattern).
+                var outTask = p.StandardOutput.ReadToEndAsync();
+                var errTask = p.StandardError.ReadToEndAsync();
+                var exited = await Task.Run(() => p.WaitForExit(120_000));
+                if (!exited) { try { p.Kill(entireProcessTree: true); } catch { } outputBox.Text += "\nError: timed out after 120s (killed)."; return; }
+                outputBox.Text += await outTask;
+                var err = await errTask;
+                if (!string.IsNullOrWhiteSpace(err)) outputBox.Text += "\n" + err;
             }
             catch (Exception ex) { outputBox.Text += $"\nError: {ex.Message}"; }
         }
@@ -342,7 +362,8 @@ public sealed partial class SiteListControl : UserControl
                     psi.ArgumentList.Add("-o");
                     psi.ArgumentList.Add(wpCli);
                     using var p = System.Diagnostics.Process.Start(psi);
-                    await p!.WaitForExitAsync();
+                    if (p is null) { outputBox.Text += "\nError: could not start curl."; return; }
+                    await p.WaitForExitAsync();
                     outputBox.Text += "WP-CLI downloaded.\n\n";
                 }
             }
@@ -561,6 +582,8 @@ public sealed partial class SiteListControl : UserControl
         try
         {
         var name = Tag(s);
+        if (Row(name) is not { } row) return;
+        if (IsProxyRow(row)) { await Info("Not applicable", $"'{name}' is a proxy/app site (no PHP) — PHP version doesn't apply."); return; }
         var combo = new ComboBox { Width = 140 };
         foreach (var v in BanglaHost.Core.Services.PhpVersions) combo.Items.Add(v);
         combo.SelectedIndex = 0;
@@ -581,6 +604,7 @@ public sealed partial class SiteListControl : UserControl
         try
         {
         var name = Tag(s);
+        if (Row(name) is { } row && IsProxyRow(row)) { await Info("Not applicable", $"'{name}' is a proxy/app site (no document root) — changing root doesn't apply."); return; }
         var path = await Picker.FolderAsync();
         if (string.IsNullOrEmpty(path)) return;
         await Op(() => EngineHost.Instance.Engine.SiteRoot(name, path));
@@ -589,13 +613,13 @@ public sealed partial class SiteListControl : UserControl
     }
     private async void Nginx_Click(object s, RoutedEventArgs e)
     {
-        try { var n = Tag(s); await Op(() => EngineHost.Instance.Engine.SiteServer(n, "nginx")); }
+        try { var n = Tag(s); if (Row(n) is { } row && IsProxyRow(row)) { await Info("Not applicable", $"'{n}' is a proxy/app site — switching server doesn't apply."); return; } await Op(() => EngineHost.Instance.Engine.SiteServer(n, "nginx")); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
     private async void Apache_Click(object s, RoutedEventArgs e)
     {
-        try { var n = Tag(s); await Op(() => EngineHost.Instance.Engine.SiteServer(n, "apache")); }
+        try { var n = Tag(s); if (Row(n) is { } row && IsProxyRow(row)) { await Info("Not applicable", $"'{n}' is a proxy/app site — switching server doesn't apply."); return; } await Op(() => EngineHost.Instance.Engine.SiteServer(n, "apache")); }
         catch (OperationCanceledException) { }
         catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }

@@ -54,7 +54,7 @@ public static class MailpitServer
             if (File.Exists(RunFile))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(RunFile));
-                BanglaHost.Core.ProcessUtils.KillSafe(doc.RootElement.GetProperty("pid").GetInt32());
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(doc.RootElement.GetProperty("pid").GetInt32(), "mailpit", "mailpit.exe", "mailhog", "mailhog.exe", "MailHog");
             }
         }
         catch { }
@@ -108,7 +108,7 @@ public static class MailhogServer
             if (File.Exists(RunFile))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(RunFile));
-                BanglaHost.Core.ProcessUtils.KillSafe(doc.RootElement.GetProperty("pid").GetInt32());
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(doc.RootElement.GetProperty("pid").GetInt32(), "mailpit", "mailpit.exe", "mailhog", "mailhog.exe", "MailHog");
             }
         }
         catch { }

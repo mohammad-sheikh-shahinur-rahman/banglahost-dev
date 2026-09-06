@@ -21,12 +21,15 @@ internal static class CacheProc
         {
             FileName = exe, Arguments = args,
             UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,   // detach: don't inherit the console
+            // Do NOT redirect daemon pipes: nobody drains them and the child blocks
+            // once the 4KB pipe fills (same reason DbServer avoids redirect).
+            RedirectStandardOutput = false, RedirectStandardError = false,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         var p = Process.Start(psi);
         if (p is null) return false;
         JobManager.Add(p);
+        try { p.Dispose(); } catch { }
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(Path.Combine(Paths.Run, $"{runName}.json"), JsonSerializer.Serialize(new { pid = p.Id, port }));
         for (var i = 0; i < 12 && !PortOpen(port); i++) System.Threading.Thread.Sleep(250);
@@ -41,7 +44,9 @@ internal static class CacheProc
             if (File.Exists(f))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(f));
-                BanglaHost.Core.ProcessUtils.KillSafe(doc.RootElement.GetProperty("pid").GetInt32());
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(
+                    doc.RootElement.GetProperty("pid").GetInt32(),
+                    runName, runName + ".exe", "redis-server", "memcached", "valkey-server");
             }
         }
         catch { }

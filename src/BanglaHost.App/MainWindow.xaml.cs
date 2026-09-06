@@ -36,7 +36,12 @@ public sealed partial class MainWindow : Window
         // Close → hide to tray when "keep running" is on (Settings); otherwise really quit.
         AppWindow.Closing += (_, e) =>
         {
-            if (_reallyQuit || !Config.Load().MinimizeToTray) { _tray.Dispose(); return; }
+            if (_reallyQuit || !Config.Load().MinimizeToTray)
+            {
+                _tray.Dispose();
+                try { BanglaHost.Core.JobManager.Shutdown(); } catch { }
+                return;
+            }
             e.Cancel = true;
             AppWindow.Hide();
             if (!_trayHintShown)
@@ -221,6 +226,7 @@ public sealed partial class MainWindow : Window
     {
         _reallyQuit = true;
         _tray.Dispose();
+        try { BanglaHost.Core.JobManager.Shutdown(); } catch { }
         Application.Current.Exit();
     }
 

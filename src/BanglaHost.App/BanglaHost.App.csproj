@@ -24,6 +24,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.241114003" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <!-- NOTE 2026-09-05: WinAppSDK 1.8.260804001 (latest 1.x) verified on nuget.org but this
+         machine's link (~29 KB/s) cannot pull the ~500MB+ closure; parked until network allows.
+         2.x is a new major — stays out of scope (needs migration review). -->
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BanglaHost.Core\BanglaHost.Core.csproj" />

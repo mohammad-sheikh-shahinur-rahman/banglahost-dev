@@ -35,16 +35,12 @@ public sealed partial class SslPage : Page
 
         LetsEncryptPanel.Visibility = isLocal ? Visibility.Collapsed : Visibility.Visible;
 
-        // Let's Encrypt issuance is not implemented (SslService.LetsEncryptSupported == false).
-        // The button used to be enabled and ran a two-second fake that logged "Simulation complete",
-        // which every user read as a failed real attempt.
-        GenLeBtn.IsEnabled = !isLocal && SslService.LetsEncryptSupported;
-        if (!SslService.LetsEncryptSupported)
-        {
-            ToolTipService.SetToolTip(GenLeBtn,
-                "Not available in this version. Issue a public certificate with win-acme or certbot "
-                + "and copy the .pem files into the certs folder.");
-        }
+        // Let's Encrypt issuance needs a public ACME client (not shipped).
+        // Keep the button ENABLED so it always does something useful: explains + opens the
+        // certs folder. A permanently disabled button reads as a dead/broken control.
+        GenLeBtn.IsEnabled = !isLocal;
+        ToolTipService.SetToolTip(GenLeBtn,
+            "Public domains need a win-acme/certbot certificate — click for steps.");
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -69,7 +65,12 @@ public sealed partial class SslPage : Page
     private async Task GenLocalAsync()
     {
         var domain = DomainBox.Text.Trim();
-        if (string.IsNullOrEmpty(domain)) return;
+        if (string.IsNullOrEmpty(domain))
+        {
+            OpBanner.Visibility = Visibility.Visible;
+            OpMsg.Text = "Enter a domain first (e.g. mysite.test).";
+            return;
+        }
 
         SetBusy(true, "Generating mkcert certificate…");
         Action<string> log = msg => DispatcherQueue?.TryEnqueue(() => OpMsg.Text = msg);
@@ -96,11 +97,40 @@ public sealed partial class SslPage : Page
     {
         var domain = DomainBox.Text.Trim();
         var email = EmailBox.Text.Trim();
-        if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(email)) return;
+        OpBanner.Visibility = Visibility.Visible;
+        if (string.IsNullOrEmpty(domain) || string.IsNullOrEmpty(email))
+        {
+            OpMsg.Text = "Enter both domain and email first.";
+            return;
+        }
 
         Action<string> log = msg => DispatcherQueue?.TryEnqueue(() => OpMsg.Text = msg);
-        OpBanner.Visibility = Visibility.Visible;
         await SslService.GenerateLetsEncryptAsync(domain, email, log);
+        // Guide the user to the manual path + open the folder so the button always helps.
+        try
+        {
+            var dlg = new ContentDialog
+            {
+                Title = "Let's Encrypt — manual steps",
+                Content = "BanglaHost doesn't ship an ACME client yet.\n\n1. Run win-acme or certbot for " + domain + "\n2. Copy the .pem certificate + key into:\n" + Paths.Certs + "\n3. Press Refresh below — the cert appears in Installed Certificates.",
+                PrimaryButtonText = "Open certs folder",
+                CloseButtonText = "Close",
+                XamlRoot = this.XamlRoot,
+            };
+            if (this.Content == null || this.XamlRoot == null) return;
+            if (await BanglaHost.App.Services.DialogQueue.ShowAsync(dlg) == ContentDialogResult.Primary)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = Paths.Certs, UseShellExecute = true,
+                    });
+                }
+                catch { }
+            }
+        }
+        catch { }
     }
 
     private void DeleteBtn_Click(object sender, RoutedEventArgs e)

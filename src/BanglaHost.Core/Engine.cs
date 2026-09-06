@@ -312,6 +312,27 @@ public sealed class Engine
             if (Services.Enabled("ollama", cfg) && Tools.OllamaExe() is not null && Ollama.Start()) Ok($"ollama on :{Ollama.Port}");
             if (Services.Enabled("apache", cfg) && Tools.HttpdExe() is not null) { var (aok, amsg) = Apache.Start(); if (aok) Ok(amsg); else Warn(amsg); }
             if (Services.Enabled("nginx", cfg) && Tools.NginxExe() is not null) { var (ok, msg) = Nginx.Start(cfg); if (ok) Ok(msg); else Warn(msg); }
+            // Tell the user WHY optional daemons didn't start instead of silently skipping them:
+            // "Start all" only starts auto-start (enabled) + installed services, so an installed
+            // but disabled service (or an enabled but not-yet-downloaded one) looks "not working".
+            var idle = new List<string>();
+            if (!Services.Enabled("redis", cfg) && Tools.RedisServerExe() is not null && !Redis.Running()) idle.Add("redis");
+            if (!Services.Enabled("valkey", cfg) && Tools.ValkeyExe() is not null && !Valkey.Running()) idle.Add("valkey");
+            if (!Services.Enabled("memcached", cfg) && Tools.MemcachedExe() is not null && !Memcached.Running()) idle.Add("memcached");
+            if (!Services.Enabled("meilisearch", cfg) && Tools.MeilisearchExe() is not null && !Meilisearch.Running()) idle.Add("meilisearch");
+            if (!Services.Enabled("mailpit", cfg) && Tools.MailpitExe() is not null && !MailpitServer.Running()) idle.Add("mailpit");
+            if (!Services.Enabled("mailhog", cfg) && Tools.MailhogExe() is not null && !MailhogServer.Running()) idle.Add("mailhog");
+            if (!Services.Enabled("ollama", cfg) && Tools.OllamaExe() is not null && !Ollama.Running()) idle.Add("ollama");
+            if (idle.Count > 0) Warn($"installed but auto-start is off (not started): {string.Join(", ", idle)} — run `banglahost enable <name>` or switch it on (★) in Services");
+            var missing = new List<string>();
+            if (Services.Enabled("redis", cfg) && Tools.RedisServerExe() is null) missing.Add("redis");
+            if (Services.Enabled("valkey", cfg) && Tools.ValkeyExe() is null) missing.Add("valkey");
+            if (Services.Enabled("memcached", cfg) && Tools.MemcachedExe() is null) missing.Add("memcached");
+            if (Services.Enabled("meilisearch", cfg) && Tools.MeilisearchExe() is null) missing.Add("meilisearch");
+            if (Services.Enabled("mailpit", cfg) && Tools.MailpitExe() is null) missing.Add("mailpit");
+            if (Services.Enabled("mailhog", cfg) && Tools.MailhogExe() is null) missing.Add("mailhog");
+            if (Services.Enabled("ollama", cfg) && Tools.OllamaExe() is null) missing.Add("ollama");
+            if (missing.Count > 0) Warn($"enabled but not installed (not started): {string.Join(", ", missing)} — run `banglahost install <name>`");
             return;
         }
         // python (and fnm/node) are TOOLS, not daemons â€” "active once installed", nothing to start.
@@ -624,17 +645,24 @@ public sealed class Engine
         var cfg = Config.Load();
         var conf = Path.Combine(Paths.NginxSites, $"{name}.conf");
         if (!File.Exists(conf)) throw new BhException($"no such site: {name}");
+        var confText = File.ReadAllText(conf);
+        if (IsProxyVhost(confText))
+            throw new BhException($"'{name}' is a proxy/app site (no PHP) — PHP version doesn't apply.");
         var (domain, root, _) = ParseVhost(conf);
+        if (string.IsNullOrWhiteSpace(root))
+            throw new BhException($"'{name}' has no document root — PHP version doesn't apply (proxy/app site?).");
         var phpKey = Services.PhpKey(version, cfg);
         RenderSite(name, domain, root, phpKey, VhostServer(conf), cfg);
         if (Nginx.Running()) Nginx.Reload(cfg);
         Ok($"{name} now on {phpKey}");
     }
 
-    /// <summary>Enable (serve) or disable a site by toggling its vhost on/off (rename Ã¢â€ â€ .disabled).</summary>
+    /// <summary>Enable (serve) or disable a site by toggling its vhost on/off (rename → .disabled).</summary>
     public void SiteEnable(string name, bool enable)
     {
         NeedInit();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$"))
+            throw new BhException($"invalid site name '{name}'");
         var on  = Path.Combine(Paths.NginxSites, $"{name}.conf");
         var off = Path.Combine(Paths.NginxSites, $"{name}.conf.disabled");
         if (enable)
@@ -647,6 +675,27 @@ public sealed class Engine
             if (File.Exists(on)) { File.Move(on, off, true); Ok($"disabled {name}"); }
             else Warn($"{name} already disabled / missing");
         }
+        // Keep the Apache backend in sync — otherwise an apache site stays live on :8080
+        // after its nginx front is disabled.
+        try
+        {
+            var active = File.Exists(on) ? on : (File.Exists(off) ? off : null);
+            var isApache = active is not null && File.ReadAllText(active).Contains("server=apache");
+            if (isApache)
+            {
+                if (!enable) Apache.RemoveVhost(name);
+                else if (active is not null)
+                {
+                    // Re-create the Apache vhost we removed on disable.
+                    var cfg = Config.Load();
+                    var (domain, root, phpKey) = ParseVhost(active);
+                    if (!string.IsNullOrWhiteSpace(root))
+                        Apache.RenderVhost(name, domain, root, phpKey, cfg);
+                }
+                Apache.Reload();
+            }
+        }
+        catch { }
         if (Nginx.Running()) Nginx.Reload(Config.Load());
     }
 
@@ -657,11 +706,13 @@ public sealed class Engine
         var cfg = Config.Load();
         var conf = Path.Combine(Paths.NginxSites, $"{name}.conf");
         if (!File.Exists(conf)) throw new BhException($"no such site: {name}");
+        if (IsProxyVhost(File.ReadAllText(conf)))
+            throw new BhException($"'{name}' is a proxy/app site (no document root) — changing root doesn't apply.");
         var (domain, _, phpKey) = ParseVhost(conf);
         Directory.CreateDirectory(newRoot);
         RenderSite(name, domain, newRoot, phpKey, VhostServer(conf), cfg);
         if (Nginx.Running()) Nginx.Reload(cfg);
-        Ok($"{name} root Ã¢â€ â€™ {newRoot}");
+        Ok($"{name} root → {newRoot}");
     }
 
     /// <summary>Switch a site between the nginx and apache backends.</summary>
@@ -672,18 +723,36 @@ public sealed class Engine
         var cfg = Config.Load();
         var conf = Path.Combine(Paths.NginxSites, $"{name}.conf");
         if (!File.Exists(conf)) throw new BhException($"no such site: {name}");
-        if (server == "apache" && !Apache.Available) throw new BhException("apache backend needs httpd â€” install Apache");
+        if (server == "apache" && !Apache.Available) throw new BhException("apache backend needs httpd — install Apache");
+        var confText = File.ReadAllText(conf);
+        if (IsProxyVhost(confText))
+            throw new BhException($"'{name}' is a proxy/app site — switching to {server} doesn't apply.");
         var (domain, root, phpKey) = ParseVhost(conf);
-        if (server == "nginx") Apache.RemoveVhost(name);   // leaving apache Ã¢â€ â€™ drop its vhost
+        if (string.IsNullOrWhiteSpace(root))
+            throw new BhException($"'{name}' has no document root — switching server doesn't apply (proxy/app site?).");
+        if (server == "nginx") Apache.RemoveVhost(name);   // leaving apache → drop its vhost
         RenderSite(name, domain, root, phpKey, server, cfg);
         if (Nginx.Running()) Nginx.Reload(cfg);
         Apache.Reload();
         Ok($"{name} now served by {server}");
     }
 
+    private static void ValidSiteName(string name)
+    {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name ?? "", "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            throw new BhException($"invalid site name '{name}'");
+    }
+
+    /// <summary>True when a vhost is a reverse-proxy / app frontend (Mailpit, phpMyAdmin
+    /// port, Node/Python app) — it has no PHP `root` so PHP/server/root actions don't apply.</summary>
+    private static bool IsProxyVhost(string confText) =>
+        confText.Contains("server=proxy") || confText.Contains("server=node") || confText.Contains("server=python");
+
     /// <summary>Render a site's vhost(s) for the chosen backend + ensure its php-cgi is up.</summary>
     private void RenderSite(string name, string domain, string root, string phpKey, string server, Config cfg)
     {
+        if (string.IsNullOrWhiteSpace(root))
+            throw new BhException($"'{name}' has no document root — cannot render PHP vhost (proxy/app site?).");
         PhpCgi.Start(Services.PhpVersion(phpKey, cfg));
         if (server == "apache")
         {
@@ -694,8 +763,15 @@ public sealed class Engine
         else NginxConfig.RenderPhpVhost(name, domain, root, phpKey, cfg);
     }
 
-    private static string VhostServer(string conf) =>
-        File.ReadAllText(conf).Contains("server=apache") ? "apache" : "nginx";
+    private static string VhostServer(string conf)
+    {
+        var text = File.ReadAllText(conf);
+        if (text.Contains("server=apache")) return "apache";
+        if (text.Contains("server=node")) return "node";
+        if (text.Contains("server=python")) return "python";
+        if (text.Contains("server=proxy")) return "proxy";
+        return "nginx";
+    }
 
     private static bool AnyApacheSite() =>
         Directory.Exists(Paths.NginxSites) &&
@@ -704,6 +780,7 @@ public sealed class Engine
     public void Secure(string domain)
     {
         NeedInit();
+        domain = SslService.ValidDomain(domain);
         var mkc = Tools.MkcertExe() ?? throw new BhException("mkcert not installed — run: banglahost install mkcert");
         Directory.CreateDirectory(Paths.Certs);
         Hdr($"Provisioning trusted cert for {domain}");
@@ -726,6 +803,7 @@ public sealed class Engine
     public void Unsecure(string domain)
     {
         NeedInit();
+        domain = SslService.ValidDomain(domain);
         Hdr($"Removing HTTPS from {domain}");
         var cert = Path.Combine(Paths.Certs, $"{domain}.pem");
         var key  = Path.Combine(Paths.Certs, $"{domain}-key.pem");
@@ -743,6 +821,7 @@ public sealed class Engine
     public void Resecure(string domain)
     {
         NeedInit();
+        domain = SslService.ValidDomain(domain);
         Hdr($"Reinstalling HTTPS for {domain}");
         try { File.Delete(Path.Combine(Paths.Certs, $"{domain}.pem")); } catch { }
         try { File.Delete(Path.Combine(Paths.Certs, $"{domain}-key.pem")); } catch { }
@@ -767,16 +846,30 @@ public sealed class Engine
         var cfg = Config.Load();
         // A proxy vhost (Mailpit, or any ported service) has a proxy_pass and no PHP root â€”
         // re-render it with the proxy renderer; RenderPhpVhost would produce a broken vhost.
-        var pm = Regex.Match(File.ReadAllText(conf), @"proxy_pass http://127\.0\.0\.1:(\d+)");
-        if (pm.Success)
+        var server = VhostServer(conf);
+        if (server == "node" || server == "python")
         {
-            NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg);
-            Ok("re-rendered proxy vhost");
+            Ok("restarting nginx to apply cert (app routing preserved)");
+        }
+        else if (server == "proxy")
+        {
+            var confText = File.ReadAllText(conf);
+            var pm = Regex.Match(confText, @"proxy_pass http://127\.0\.0\.1:(\d+)");
+            if (pm.Success)
+            {
+                NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg);
+                Ok("re-rendered proxy vhost");
+            }
         }
         else
         {
             var (dom, root, phpKey) = ParseVhost(conf);
-            NginxConfig.RenderPhpVhost(name, dom, root, phpKey, cfg);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                Warn("'" + name + "' has no document root -- skipping re-render");
+                return;
+            }
+            RenderSite(name, dom, root, phpKey, server, cfg);
             Ok("re-rendered vhost");
         }
         if (Nginx.Running()) { Nginx.Stop(); System.Threading.Thread.Sleep(300); Nginx.Start(cfg); }
@@ -939,9 +1032,18 @@ public sealed class Engine
             RedirectStandardOutput = true, RedirectStandardError = true,
             WorkingDirectory = cwd ?? Path.GetDirectoryName(exe)!,
         };
-        var p = System.Diagnostics.Process.Start(psi)!;
-        var outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))();
-        p.WaitForExit();
+        using var p = System.Diagnostics.Process.Start(psi)
+            ?? throw new BhException($"could not start {Path.GetFileName(exe)}");
+        // Drain both pipes concurrently before waiting — sequential ReadToEnd + WaitForExit
+        // deadlocks once the child fills the 4KB pipe. Bounded 30s wait, then kill.
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        var errTask = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(30_000))
+        {
+            try { p.Kill(entireProcessTree: true); } catch { }
+            throw new BhException($"{Path.GetFileName(exe)} timed out after 30s");
+        }
+        var outp = outTask.GetAwaiter().GetResult() + errTask.GetAwaiter().GetResult();
         return (p.ExitCode, outp);
     }
 
@@ -966,7 +1068,7 @@ public sealed class Engine
     {
         var text = File.ReadAllText(conf);
         var domain = Regex.Match(text, @"server_name\s+([^;]+);").Groups[1].Value.Trim();
-        var root   = Regex.Match(text, @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim();
+        var root   = Regex.Match(text, @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim().Trim('"').Trim();
         var phpKey = Regex.Match(text, @"php=(\S+)").Groups[1].Value.Trim();
         if (string.IsNullOrEmpty(phpKey)) phpKey = "php";
         return (domain, root, phpKey);
@@ -1013,10 +1115,13 @@ public sealed class Engine
             var text = File.ReadAllText(f);
             var domain = Regex.Match(text, @"server_name\s+([^;]+);").Groups[1].Value.Trim();
             var php    = Regex.Match(text, @"php=(\S+)").Groups[1].Value.Trim();
-            var root   = Regex.Match(text, @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim();
+            var root   = Regex.Match(text, @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim().Trim('"').Trim();
             var secure = text.Contains("ssl_certificate ");
             list.Add(new Site(name, domain, php, root, secure, enabled,
-                              text.Contains("server=apache") ? "apache" : "nginx"));
+                              text.Contains("server=apache") ? "apache"
+                              : text.Contains("server=node") ? "node"
+                              : text.Contains("server=python") ? "python"
+                              : text.Contains("server=proxy") ? "proxy" : "nginx"));
         }
         return list;
     }
@@ -1182,18 +1287,30 @@ public sealed class Engine
         int.TryParse(v, out var p) && p is > 0 and < 65536 ? p : throw new BhException($"{key} must be a port number");
 
     /// <summary>Re-render every site vhost (e.g. after a TLD/port change), proxy sites included.</summary>
-    private static void RegenVhosts(Config cfg)
+    private void RegenVhosts(Config cfg)
     {
         if (!Directory.Exists(Paths.NginxSites)) return;
         foreach (var f in Directory.EnumerateFiles(Paths.NginxSites, "*.conf"))
         {
             var name = Path.GetFileNameWithoutExtension(f);
-            var text = File.ReadAllText(f);
             var domain = $"{name}.{cfg.Tld}";
-            var pm = Regex.Match(text, @"proxy_pass http://127\.0\.0\.1:(\d+)");
-            if (pm.Success) { NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg); continue; }
+            var server = VhostServer(f);
+            
+            if (server == "node" || server == "python") continue;
+            
+            if (server == "proxy")
+            {
+                var text = File.ReadAllText(f);
+                var pm = Regex.Match(text, @"proxy_pass http://127\.0\.0\.1:(\d+)");
+                if (pm.Success) NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg);
+                continue;
+            }
+            
             var (_, root, phpKey) = ParseVhost(f);
-            if (root.Length > 0) NginxConfig.RenderPhpVhost(name, domain, root, phpKey, cfg);
+            if (!string.IsNullOrWhiteSpace(root))
+            {
+                RenderSite(name, domain, root, phpKey, server, cfg);
+            }
         }
     }
     public void Db(string sub, params string[] args)
@@ -1547,6 +1664,7 @@ public sealed class Engine
     {
         NeedInit();
         var name = args.Length > 0 ? args[0] : "";
+        if (sub is "start" or "stop" or "url" && name.Length > 0) ValidSiteName(name);
         switch (sub)
         {
             case "install":
@@ -1578,7 +1696,7 @@ public sealed class Engine
                 // gets an instant 301 to https://<site>.test and the browser fails "Server not
                 // found". Drop a mu-plugin that rewrites siteurl/home to the tunnel host on the
                 // fly â€” safe for non-WP sites (file just sits unused).
-                var root = Regex.Match(File.ReadAllText(conf), @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim();
+                var root = Regex.Match(File.ReadAllText(conf), @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim().Trim('"').Trim();
                 if (!string.IsNullOrEmpty(root) && BanglaHost.Core.Tunnel.Url(name) is { } tunnelUrl)
                     WpTunnelBridge.Install(root, tunnelUrl, s => Info(s));
                 break;
@@ -1591,7 +1709,7 @@ public sealed class Engine
                     var conf = Path.Combine(Paths.NginxSites, $"{name}.conf");
                     if (File.Exists(conf))
                     {
-                        var root = Regex.Match(File.ReadAllText(conf), @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim();
+                        var root = Regex.Match(File.ReadAllText(conf), @"(?m)^\s*root\s+([^;]+);").Groups[1].Value.Trim().Trim('"').Trim();
                         if (!string.IsNullOrEmpty(root)) WpTunnelBridge.Uninstall(root);
                     }
                 }

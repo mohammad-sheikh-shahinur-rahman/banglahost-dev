@@ -147,6 +147,16 @@ public static class NginxConfig
     /// </summary>
     public static string NginxPath(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new BhException("site root is missing (proxy/app sites have no document root — PHP version / server switch doesn't apply).");
+        // ParseVhost/ListSites return the raw `root` value including the surrounding
+        // double-quotes we emit (root "C:/...";). Strip them so a re-render round-trips
+        // instead of hitting the '"' guard below.
+        path = path.Trim();
+        if (path.Length >= 2 && path.StartsWith("\"") && path.EndsWith("\""))
+            path = path[1..^1];
+        if (string.IsNullOrWhiteSpace(path))
+            throw new BhException("site root is missing (proxy/app sites have no document root — PHP version / server switch doesn't apply).");
         string full;
         try { full = Path.GetFullPath(path); }
         catch (Exception ex) { throw new BhException($"bad site root '{path}': {ex.Message}"); }

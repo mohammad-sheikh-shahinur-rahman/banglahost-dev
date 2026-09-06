@@ -34,10 +34,19 @@ public static class Downloader
             RedirectStandardOutput = true, RedirectStandardError = true,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
-        using var p = System.Diagnostics.Process.Start(psi)!;
-        var err = p.StandardError.ReadToEnd();
-        p.StandardOutput.ReadToEnd();
-        p.WaitForExit();
+        using var p = System.Diagnostics.Process.Start(psi)
+            ?? throw new InvalidOperationException($"could not start {Path.GetFileName(exe)}");
+        // Drain both pipes concurrently — sequential ReadToEnd deadlocks once the child
+        // fills the 4KB pipe (composer/laravel are chatty). Bounded 10 min wait, then kill.
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        var errTask = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(600_000))
+        {
+            try { p.Kill(entireProcessTree: true); } catch { }
+            throw new InvalidOperationException($"{Path.GetFileName(exe)} timed out after 10 minutes");
+        }
+        var err = errTask.GetAwaiter().GetResult();
+        outTask.GetAwaiter().GetResult();
         if (p.ExitCode != 0) throw new InvalidOperationException($"{Path.GetFileName(exe)} failed ({p.ExitCode}): {err.Trim()}");
     }
 
@@ -83,7 +92,9 @@ public static class Downloader
 
     private static async Task<string> DownloadToTmp(string url, string fileName, string? ua = UA)
     {
-        var dest = Path.Combine(Paths.Tmp, fileName);
+        // Unique per call — two concurrent installs must never share "mysql.zip" etc.
+        var unique = $"{Path.GetFileNameWithoutExtension(fileName)}-{Guid.NewGuid():N}{Path.GetExtension(fileName)}";
+        var dest = Path.Combine(Paths.Tmp, unique);
         await CurlTo(url, dest, ua);
         return dest;
     }
@@ -878,7 +889,7 @@ public static class Downloader
     public static async Task InstallWordPress(string root, string db)
     {
         var zip = await DownloadToTmp("https://wordpress.org/latest.zip", "wordpress.zip");
-        var tmp = Path.Combine(Paths.Tmp, "wp-extract");
+        var tmp = Path.Combine(Paths.Tmp, "wp-extract-" + Guid.NewGuid().ToString("N"));
         if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
         ExtractZip(zip, tmp);
         CopyDir(Path.Combine(tmp, "wordpress"), root);   // merge into the (possibly placeholder) root
@@ -921,7 +932,7 @@ public static class Downloader
         var url = $"https://files.phpmyadmin.net/phpMyAdmin/{ver}/phpMyAdmin-{ver}-all-languages.zip";
         var zip = await DownloadToTmp(url, "phpmyadmin.zip");
 
-        var tmp = Path.Combine(Paths.Tmp, "pma-extract");
+        var tmp = Path.Combine(Paths.Tmp, "pma-extract-" + Guid.NewGuid().ToString("N"));
         if (Directory.Exists(tmp)) Directory.Delete(tmp, true);
         ExtractZip(zip, tmp);
         var inner = Directory.GetDirectories(tmp).FirstOrDefault() ?? tmp;   // phpMyAdmin-<ver>-all-languages\

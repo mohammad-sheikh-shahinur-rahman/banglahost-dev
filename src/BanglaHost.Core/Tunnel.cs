@@ -74,9 +74,10 @@ public static class Tunnel
         }
         // Earlier builds ran cloudflared through `cmd /c cloudflared > log` and stored cmd.exe's
         // PID — so the orphaned cloudflared child could survive a Stop() and keep the log file
-        // locked (Windows opens files exclusive-write by default). Sweep any cloudflared.exe
-        // whose module path is *our* installed copy before we touch the log.
-        KillOrphanCloudflared(cf);
+        // locked (Windows opens files exclusive-write by default). Sweep only TRUE orphans:
+        // cloudflared processes whose PID is NOT recorded in any live tunnel-*.pid file, so
+        // starting tunnel B never kills tunnel A's live process (multi-tunnel works).
+        KillOrphanCloudflared(cf, name);
         // Belt-and-braces: even after Stop, wipe leftover state so nothing lingers.
         try { File.Delete(PidFile(name)); } catch { }
         Directory.CreateDirectory(Paths.Run);
@@ -161,17 +162,34 @@ public static class Tunnel
 
         try
         {
-            if (urlTcs.Task.Wait(TimeSpan.FromSeconds(5)))
+            // cloudflared often prints the URL at 6-20s (cold start + QUIC handshake).
+            // Wait up to 25s: poll the TCS briefly, then fall back to scanning the shared log.
+            var deadline = DateTime.UtcNow.AddSeconds(25);
+            while (DateTime.UtcNow < deadline)
+            {
+                if (urlTcs.Task.IsCompleted)
+                    break;
+                try { urlTcs.Task.Wait(500); } catch { break; }
+                if (urlTcs.Task.IsCompleted)
+                    break;
+                try
+                {
+                    var early = urlRx.Match(ReadShared(logPath));
+                    if (early.Success) { urlTcs.TrySetResult(early.Value); break; }
+                }
+                catch { }
+                try { if (proc.HasExited) break; } catch { break; }
+            }
+            if (urlTcs.Task.Status == TaskStatus.RanToCompletion)
             {
                 var url = urlTcs.Task.Result;
                 File.WriteAllText(UrlFile(name), url);
                 return (true, url);
             }
+            if (urlTcs.Task.IsFaulted)
+                return (false, "tunnel exited early — see " + logPath);
         }
-        catch (AggregateException ae) when (ae.InnerException is not null)
-        {
-            return (false, "tunnel exited early — see " + logPath);
-        }
+        catch { }
         
         try
         {
@@ -191,18 +209,32 @@ public static class Tunnel
         try
         {
             if (File.Exists(PidFile(name)) && int.TryParse(File.ReadAllText(PidFile(name)).Trim(), out var pid))
-                BanglaHost.Core.ProcessUtils.KillSafe(pid);
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(pid, "cloudflared", "cloudflared.exe");
         }
         catch { }
         try { File.Delete(PidFile(name)); File.Delete(UrlFile(name)); } catch { }
     }
 
-    /// <summary>Kill any cloudflared.exe whose module path is our installed copy — catches the
-    /// zombies left behind by pre-1.4.4 builds that wrapped cloudflared in cmd /c and lost
-    /// track of the child PID. Best-effort; failures are swallowed because they usually mean
-    /// "already dead" or "no permission" (in which case Windows will still deny our write).</summary>
-    private static void KillOrphanCloudflared(string ourExe)
+    /// <summary>Kill orphaned cloudflared.exe copies left by crashed/old builds — but NEVER a PID
+    /// recorded in another live tunnel-*.pid file, so starting tunnel B keeps tunnel A alive.</summary>
+    private static void KillOrphanCloudflared(string ourExe, string exceptName = "")
     {
+        var livePids = new HashSet<int>();
+        try
+        {
+            if (Directory.Exists(Paths.Run))
+                foreach (var f in Directory.EnumerateFiles(Paths.Run, "tunnel-*.pid"))
+                {
+                    try
+                    {
+                        var n = Path.GetFileNameWithoutExtension(f)["tunnel-".Length..];
+                        if (n.Equals(exceptName, StringComparison.OrdinalIgnoreCase)) continue;
+                        if (int.TryParse(File.ReadAllText(f).Trim(), out var pid)) livePids.Add(pid);
+                    }
+                    catch { }
+                }
+        }
+        catch { }
         try
         {
             var target = Path.GetFullPath(ourExe);
@@ -210,6 +242,7 @@ public static class Tunnel
             {
                 try
                 {
+                    try { if (livePids.Contains(p.Id)) continue; } catch { }
                     var path = p.MainModule?.FileName;
                     if (path is null) continue;
                     if (!string.Equals(Path.GetFullPath(path), target, StringComparison.OrdinalIgnoreCase))

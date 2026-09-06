@@ -149,8 +149,9 @@ public static class PySite
     public static void Stop(string name)
     {
         var f = RunFile(name);
-        // kill the whole tree ï¿½ gunicorn/uvicorn/django spawn worker children
-        try { if (File.Exists(f)) { using var doc = JsonDocument.Parse(File.ReadAllText(f)); BanglaHost.Core.ProcessUtils.KillSafe(doc.RootElement.GetProperty("pid").GetInt32()); } } catch { }
+        // kill the whole tree — gunicorn/uvicorn/django spawn worker children.
+        // Checked kill: the stored PID is the cmd/python wrapper, never an unrelated recycled PID.
+        try { if (File.Exists(f)) { using var doc = JsonDocument.Parse(File.ReadAllText(f)); BanglaHost.Core.ProcessUtils.KillSafeChecked(doc.RootElement.GetProperty("pid").GetInt32(), "cmd", "cmd.exe", "python", "python.exe", "pythonw", "uvicorn", "gunicorn"); } } catch { }
         try { File.Delete(f); } catch { }
     }
 

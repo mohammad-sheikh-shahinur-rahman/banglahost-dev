@@ -128,6 +128,12 @@ public partial class App : Application
             () => BanglaHost.Core.SiteDbHostFix.Run(BanglaHost.Core.Config.Load().SitesRoot),
             "SiteDbHostFix");
 
+        // A crash leaves cloudflared tunnels (live public ingress) behind — reap them on launch
+        // instead of leaving a silent route into the machine.
+        BanglaHost.App.Services.BackgroundWork.RunGuarded(
+            () => BanglaHost.Core.Tunnel.CleanupStrayTunnels(),
+            "TunnelCleanup");
+
         // Optionally bring all services up on launch (Settings → Start services when BanglaHost launches).
         if (BanglaHost.Core.Config.Load().StartServicesOnLaunch)
             BanglaHost.App.Services.BackgroundWork.RunGuarded(

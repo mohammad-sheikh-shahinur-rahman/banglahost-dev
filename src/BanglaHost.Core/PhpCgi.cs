@@ -186,12 +186,14 @@ public static class PhpCgi
 
     public static void Stop(string version)
     {
-        try { File.Delete(RunFile(version)); } catch { }
+        // Read the tracked pid BEFORE deleting the file — the old order deleted first,
+        // so Info() always returned null and the tracked kill never fired (orphan kept the port).
         var info = Info(version);
         if (info is not null)
         {
             try { BanglaHost.Core.ProcessUtils.KillSafe(info.Pid); } catch { /* already gone */ }
         }
+        try { File.Delete(RunFile(version)); } catch { }
         // The tracked pid can be stale while ORPHANED php-cgi masters from earlier starts keep
         // serving the port (a restart that didn't clean up cleanly, an app relaunch, etc. — the
         // same pile-up nginx had). Then a "restart" kills only the tracked pid, the orphan keeps

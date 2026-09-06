@@ -116,7 +116,12 @@ public static class NodeSite
             if (File.Exists(f))
             {
                 using var doc = JsonDocument.Parse(File.ReadAllText(f));
-                BanglaHost.Core.ProcessUtils.KillSafe(doc.RootElement.GetProperty("pid").GetInt32());
+                // Stored PID is the transient cmd.exe wrapper — only kill when it still is
+                // cmd/node/npm/yarn, never an unrelated recycled PID.
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(
+                    doc.RootElement.GetProperty("pid").GetInt32(),
+                    "cmd", "cmd.exe", "node", "node.exe", "npm", "npm.exe",
+                    "yarn", "yarn.exe", "bun", "bun.exe", "deno", "deno.exe");
             }
         }
         catch { }
