@@ -858,6 +858,7 @@ public sealed class Engine
             if (pm.Success)
             {
                 NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg);
+                Apache.RemoveVhost(name);   // a proxy front must never leave a stale Apache backend behind
                 Ok("re-rendered proxy vhost");
             }
         }
@@ -1303,6 +1304,7 @@ public sealed class Engine
                 var text = File.ReadAllText(f);
                 var pm = Regex.Match(text, @"proxy_pass http://127\.0\.0\.1:(\d+)");
                 if (pm.Success) NginxConfig.RenderProxyVhost(name, domain, int.Parse(pm.Groups[1].Value), cfg);
+                Apache.RemoveVhost(name);   // a proxy front must never leave a stale Apache backend behind
                 continue;
             }
             

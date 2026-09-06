@@ -118,12 +118,15 @@ public static class NetUtils
     /// </summary>
     public static bool IsListening(int port, int timeoutMs = 400)
     {
+        if (port <= 0 || port > 65535) return false;
         try
         {
-            // GetAwaiter().GetResult() rather than .Wait(ms): the timeout is enforced *inside* the
-            // async method via CancelAfter, so this returns as soon as the real answer is known and
-            // never abandons a pending connect.
-            return IsListeningAsync(port, timeoutMs).GetAwaiter().GetResult();
+            using var client = new TcpClient(AddressFamily.InterNetwork);
+            var result = client.BeginConnect(IPAddress.Loopback, port, null, null);
+            var success = result.AsyncWaitHandle.WaitOne(timeoutMs);
+            if (!success) return false;
+            client.EndConnect(result);
+            return true;
         }
         catch { return false; }
     }

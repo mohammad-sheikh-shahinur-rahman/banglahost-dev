@@ -78,6 +78,11 @@ public static class Apache
     /// mod_proxy_fcgi over TCP corrupts SCRIPT_FILENAME with the C:\ drive letter).</summary>
     public static void RenderVhost(string name, string domain, string root, string phpKey, Config cfg)
     {
+        // NEVER emit an empty DocumentRoot: a single bad vhost makes `httpd -t` fail and
+        // Apache refuses to start at all, taking down EVERY Apache-backed site (502s across
+        // the board). Fail fast with a clear message so the bad site gets fixed instead.
+        if (string.IsNullOrWhiteSpace(root))
+            throw new BhException($"Site '{name}': web root is empty — set it first (`banglahost site root {name} <path>`). Refusing to write an Apache vhost with an empty DocumentRoot.");
         var version = Services.PhpVersion(phpKey, cfg);
         var phpExe = Tools.PhpCgiExe(version);
         var phpDir = phpExe is not null ? Fwd(Path.GetDirectoryName(phpExe)!) : "";
