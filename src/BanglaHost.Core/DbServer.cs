@@ -125,7 +125,7 @@ public static class DbServer
             // --log-error (set above) captures everything we would have read.
             WorkingDirectory = Path.GetDirectoryName(mysqld)!,
         };
-        using var proc = Process.Start(psi);
+        var proc = Process.Start(psi);
 
         if (proc is null) return (false, "failed to spawn mysqld");
 
@@ -192,7 +192,7 @@ public static class DbServer
                 using var doc = JsonDocument.Parse(File.ReadAllText(RunFile));
                 var pid = doc.RootElement.GetProperty("pid").GetInt32();
                 System.Threading.Thread.Sleep(500);
-                if (Running()) { try { BanglaHost.Core.ProcessUtils.KillSafe(pid); } catch { } }   // graceful shutdown didn't take â†’ force it
+                if (Running()) { try { BanglaHost.Core.ProcessUtils.KillSafeChecked(pid, "mysqld", "mariadbd", "mysql"); } catch { } }   // graceful shutdown didn't take â†’ force it
             }
         }
         catch { }

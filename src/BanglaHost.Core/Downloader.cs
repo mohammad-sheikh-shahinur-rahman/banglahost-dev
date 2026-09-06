@@ -601,8 +601,16 @@ public static class Downloader
         foreach (var a in new[] { "-y", "--no-modify-path", "--default-toolchain", "stable", "--profile", "minimal" })
             psi.ArgumentList.Add(a);
         using var p = System.Diagnostics.Process.Start(psi)!;
-        p.StandardOutput.ReadToEnd(); var err = p.StandardError.ReadToEnd();
-        p.WaitForExit();
+        // Concurrent pipe drain to avoid deadlock when both pipes fill > 4KB (C2/C5).
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        var errTask = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(600_000))
+        {
+            try { p.Kill(true); } catch { }
+            throw new InvalidOperationException("rustup-init timed out after 10 minutes");
+        }
+        var err = errTask.GetAwaiter().GetResult();
+        outTask.GetAwaiter().GetResult();
         if (p.ExitCode != 0) throw new InvalidOperationException($"rustup-init failed ({p.ExitCode}): {err.Trim()}");
         return Tools.CargoExe() ?? throw new InvalidOperationException("cargo.exe not found after rustup");
     }

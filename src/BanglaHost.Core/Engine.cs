@@ -1418,8 +1418,17 @@ public sealed class Engine
         };
         psi.Environment["FNM_DIR"] = nodeDir;
         var p = System.Diagnostics.Process.Start(psi)!;
-        var outp = (((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))()).TrimEnd();
-        p.WaitForExit();
+        // Concurrent pipe drain (C2/C5) — sequential ReadToEnd + ReadToEndAsync deadlocks
+        // when either pipe fills > 4KB before the other is consumed.
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        var errTask = p.StandardError.ReadToEndAsync();
+        if (!p.WaitForExit(120_000))
+        {
+            try { p.Kill(true); } catch { }
+            throw new BhException($"fnm {fnmArgs} timed out after 120s");
+        }
+        var outp = (outTask.GetAwaiter().GetResult() + errTask.GetAwaiter().GetResult()).TrimEnd();
+        p.Dispose();
         if (outp.Length > 0) Out(outp);
         if (p.ExitCode != 0) throw new BhException($"fnm {fnmArgs} failed");
         if (sub is "install" or "i") Ok($"node {v} installed â€” run with: fnm use {v} (FNM_DIR={nodeDir})");
@@ -1439,7 +1448,15 @@ public sealed class Engine
         };
         psi.Environment["FNM_DIR"] = nodeDir;
         string outp;
-        try { var p = System.Diagnostics.Process.Start(psi)!; outp = ((Func<string>)(() => { var _errT = p.StandardError.ReadToEndAsync(); var _out = p.StandardOutput.ReadToEnd(); return _out + _errT.Result; }))(); p.WaitForExit(); }
+        try
+        {
+            var p = System.Diagnostics.Process.Start(psi)!;
+            var outTask = p.StandardOutput.ReadToEndAsync();
+            var errTask = p.StandardError.ReadToEndAsync();
+            p.WaitForExit(30_000);
+            outp = (outTask.GetAwaiter().GetResult() + errTask.GetAwaiter().GetResult()).TrimEnd();
+            p.Dispose();
+        }
         catch { return Array.Empty<(string, bool)>(); }
         var list = new List<(string, bool)>();
         foreach (var line in outp.Replace("\r", "").Split('\n'))

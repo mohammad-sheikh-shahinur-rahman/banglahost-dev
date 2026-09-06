@@ -166,7 +166,7 @@ var body = $$"""
         try
         {
             if (File.Exists(PidFile) && int.TryParse(File.ReadAllText(PidFile).Trim(), out var pid))
-                BanglaHost.Core.ProcessUtils.KillSafe(pid);
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(pid, "httpd", "httpd.exe");
         }
         catch { }
         try { File.Delete(PidFile); } catch { }

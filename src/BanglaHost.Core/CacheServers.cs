@@ -29,7 +29,7 @@ internal static class CacheProc
         var p = Process.Start(psi);
         if (p is null) return false;
         JobManager.Add(p);
-        try { p.Dispose(); } catch { }
+        // Don't dispose — let JobManager own the process lifetime
         Directory.CreateDirectory(Paths.Run);
         File.WriteAllText(Path.Combine(Paths.Run, $"{runName}.json"), JsonSerializer.Serialize(new { pid = p.Id, port }));
         for (var i = 0; i < 12 && !PortOpen(port); i++) System.Threading.Thread.Sleep(250);

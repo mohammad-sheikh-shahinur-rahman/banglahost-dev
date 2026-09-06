@@ -38,8 +38,8 @@ public static class Nginx
                 FileName = exe,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                // Do NOT redirect pipes: nginx daemonizes and nobody drains them.
+                // A redirected pipe fills at 4KB and blocks nginx in write() forever.
                 WorkingDirectory = Path.GetDirectoryName(exe)!,
             };
             foreach (var a in args) psi.ArgumentList.Add(a);
@@ -88,7 +88,7 @@ public static class Nginx
         try
         {
             if (File.Exists(PidFile) && int.TryParse(File.ReadAllText(PidFile).Trim(), out var pid))
-                BanglaHost.Core.ProcessUtils.KillSafe(pid);
+                BanglaHost.Core.ProcessUtils.KillSafeChecked(pid, "nginx", "nginx.exe");
         }
         catch { }
 
