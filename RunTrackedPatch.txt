@@ -1,0 +1,46 @@
+﻿    public async Task<string?> Run(Func<Task> action)
+    {
+        try { await Task.Run(action); return null; }
+        catch (Exception ex) { var m = Describe(ex); Append($"  [FAIL] {m}"); return m; }
+    }
+
+    public async Task<(bool ok, string output)> RunCaptured(Func<Task> action)
+    {
+        var sb = new System.Text.StringBuilder();
+        void Cap(string l) => sb.AppendLine(l);
+        LogAppended += Cap;
+        var ok = true;
+        try { await Task.Run(action); }
+        catch (Exception ex) { Append($"  [FAIL] {Describe(ex)}"); ok = false; }
+        finally { LogAppended -= Cap; }
+        return (ok, sb.ToString().Trim());
+    }
+
+    public async Task RunTracked(string name, Func<Task> action)
+    {
+        if (CurrentOp is { Running: true }) { await Run(action); return; }
+
+        var op = new OpState { Name = name, Running = true, Progress = -1, Message = "Starting..." };
+        CurrentOp = op;
+        void Cap(string l) { var t = l.Trim(); if (t.Length > 0) { op.Message = t; RaiseOp(); } }
+        LogAppended += Cap;
+        Downloader.OnProgress = p => { op.Progress = p; RaiseOp(); };
+        RaiseOp();
+        try
+        {
+            await Task.Run(action);
+            op.Success = true; op.Message = $"[OK] {name} done";
+        }
+        catch (Exception ex)
+        {
+            var m = Describe(ex); Append($"  [FAIL] {m}");
+            op.Success = false; op.Message = "[FAIL] " + m;
+        }
+        finally
+        {
+            op.Running = false; op.Progress = 100;
+            Downloader.OnProgress = null;
+            LogAppended -= Cap;
+            RaiseOp();
+        }
+    }

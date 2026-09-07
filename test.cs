@@ -1,31 +1,11 @@
 using System;
-using System.Net.Sockets;
 using System.Threading.Tasks;
-using System.Threading;
-using System.Net;
-
-class Program {
-    public static async Task<bool> IsListeningAsync(int port, int timeoutMs = 400, CancellationToken ct = default)
+class Test
+{
+    public static void Run(Action a) { Console.WriteLine("Action"); }
+    public static void Run(Func<Task> f) { Console.WriteLine("Func<Task>"); }
+    public static async Task Main()
     {
-        if (port <= 0 || port > 65535) return false;
-
-        using var client = new TcpClient(AddressFamily.InterNetwork);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeoutMs);
-
-        try
-        {
-            await client.ConnectAsync(IPAddress.Loopback, port, timeoutCts.Token).ConfigureAwait(false);
-            return client.Connected;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-            return false;
-        }
-    }
-    static async Task Main() {
-        bool res = await IsListeningAsync(8080, 500);
-        Console.WriteLine($"Result: {res}");
+        Run(async () => { await Task.Delay(1); });
     }
 }

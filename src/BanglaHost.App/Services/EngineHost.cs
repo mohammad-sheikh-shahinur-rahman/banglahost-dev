@@ -51,6 +51,54 @@ public sealed class EngineHost
 
     /// <summary>Run a blocking engine action on a background thread. Returns the error message
     /// if it threw (also logged), else null — so callers can surface it in the UI.</summary>
+    
+    public Task<string?> Run(Func<Task> action) => Task.Run(async () =>
+    {
+        try { await action(); return (string?)null; }
+        catch (Exception ex) { var m = Describe(ex); Append($"  [FAIL] {m}"); return m; }
+    });
+
+    public Task<(bool ok, string output)> RunCaptured(Func<Task> action) => Task.Run(async () =>
+    {
+        var sb = new System.Text.StringBuilder();
+        void Cap(string l) => sb.AppendLine(l);
+        LogAppended += Cap;
+        var ok = true;
+        try { await action(); }
+        catch (Exception ex) { Append($"  [FAIL] {Describe(ex)}"); ok = false; }
+        finally { LogAppended -= Cap; }
+        return (ok, sb.ToString().Trim());
+    });
+
+    public async Task RunTracked(string name, Func<Task> action)
+    {
+        if (CurrentOp is { Running: true }) { await Run(action); return; }
+
+        var op = new OpState { Name = name, Running = true, Progress = -1, Message = "Starting..." };
+        CurrentOp = op;
+        void Cap(string l) { var t = l.Trim(); if (t.Length > 0) { op.Message = t; RaiseOp(); } }
+        LogAppended += Cap;
+        Downloader.OnProgress = p => { op.Progress = p; RaiseOp(); };
+        RaiseOp();
+        try
+        {
+            await Task.Run(action);
+            op.Success = true; op.Message = $"[OK] {name} done";
+        }
+        catch (Exception ex)
+        {
+            var m = Describe(ex); Append($"  [FAIL] {m}");
+            op.Success = false; op.Message = "[FAIL] " + m;
+        }
+        finally
+        {
+            op.Running = false; op.Progress = 100;
+            Downloader.OnProgress = null;
+            LogAppended -= Cap;
+            RaiseOp();
+        }
+    }
+
     public Task<string?> Run(Action action) => Task.Run(() =>
     {
         try { action(); return (string?)null; }
