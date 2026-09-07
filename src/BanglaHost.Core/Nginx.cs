@@ -75,7 +75,7 @@ public static class Nginx
 
         // Launch detached. nginx daemonizes on Windows and writes its own pid file.
         Run(exe, new[] { "-p", NginxConfig.Fwd(NginxDir), "-c", NginxConfig.Fwd(ConfPath) }, wait: false);
-        System.Threading.Thread.Sleep(400);
+        for (var i = 0; i < 15 && !Running(); i++) System.Threading.Thread.Sleep(300);
         return Running() ? (true, "nginx started") : (false, "nginx failed to start (see logs/nginx-error.log)");
     }
 
