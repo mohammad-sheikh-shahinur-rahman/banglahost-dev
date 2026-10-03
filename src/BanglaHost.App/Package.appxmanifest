@@ -9,7 +9,7 @@
   <Identity
     Name="ITAmadersomajInc.BanglaHostLocalWebServer"
     Publisher="CN=88BD5184-3CC3-4CE2-BC26-1D0DF54D2A8E"
-    Version="1.6.6.0" />
+    Version="1.7.7.0" />
 
   <Properties>
     <DisplayName>BanglaHost Local Web Server</DisplayName>
