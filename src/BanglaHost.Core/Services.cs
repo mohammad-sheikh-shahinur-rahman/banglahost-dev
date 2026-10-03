@@ -117,8 +117,9 @@ public static class Services
     public static string PhpVersion(string key, Config cfg)
     {
         if (string.IsNullOrEmpty(key)) return "";
-        if (key == "php" || key == "default") return cfg.DefaultPhp;
-        return key.StartsWith("php@") ? key[4..] : key;
+        while (key.StartsWith("php@")) key = key[4..];
+        if (key == "php" || key == "default" || string.IsNullOrEmpty(key)) return cfg.DefaultPhp;
+        return key;
     }
 
     public static bool Installed(string key, Config cfg) => key switch

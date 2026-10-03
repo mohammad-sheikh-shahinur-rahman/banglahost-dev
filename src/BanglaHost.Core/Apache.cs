@@ -83,6 +83,7 @@ public static class Apache
         // the board). Fail fast with a clear message so the bad site gets fixed instead.
         if (string.IsNullOrWhiteSpace(root))
             throw new BhException($"Site '{name}': web root is empty — set it first (`banglahost site root {name} <path>`). Refusing to write an Apache vhost with an empty DocumentRoot.");
+        root = root.Trim().Trim('"').Trim();
         var version = Services.PhpVersion(phpKey, cfg);
         var phpExe = Tools.PhpCgiExe(version);
         var phpDir = phpExe is not null ? Fwd(Path.GetDirectoryName(phpExe)!) : "";
