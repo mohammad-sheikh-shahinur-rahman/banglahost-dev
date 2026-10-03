@@ -16,24 +16,28 @@ public sealed partial class AiAssistantPage : Page
 {
     public AiAssistantPage() => InitializeComponent();
 
-    protected override void OnNavigatedTo(NavigationEventArgs e) => CheckOllama();
+    protected override void OnNavigatedTo(NavigationEventArgs e) => _ = CheckOllamaAsync();
 
-    private void CheckOllama()
+    private async System.Threading.Tasks.Task CheckOllamaAsync()
     {
-        var snap = EngineHost.Instance.Engine.Api();
-        var ollama = snap.Services.FirstOrDefault(s => s.Key == "ollama");
-        SetupCard.Visibility = (ollama == null || !ollama.Running) ? Visibility.Visible : Visibility.Collapsed;
+        try
+        {
+            var running = await System.Threading.Tasks.Task.Run(() => Ollama.Running());
+            SetupCard.Visibility = !running ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch { }
     }
 
     private async void InstallOllama_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-        SetupCard.Visibility = Visibility.Collapsed;
-        await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.Install("ollama"));
-        CheckOllama();
-        } catch (OperationCanceledException) { }
-    catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
+            SetupCard.Visibility = Visibility.Collapsed;
+            await EngineHost.Instance.RunCaptured(() => EngineHost.Instance.Engine.Install("ollama"));
+            await CheckOllamaAsync();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "AsyncVoidUI"); }
     }
 
     private void Input_KeyUp(object sender, KeyRoutedEventArgs e)

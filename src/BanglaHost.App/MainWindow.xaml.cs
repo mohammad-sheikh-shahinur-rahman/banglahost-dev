@@ -15,6 +15,22 @@ public sealed partial class MainWindow : Window
     private Updater.Result? _pendingUpdate;   // an available update waiting to be offered (shown when the window is visible)
     private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromHours(24) };   // daily re-check for long-running (tray) instances
 
+    // Cached copy of the only setting the close handler needs. The close path must not touch the
+    // disk: AppWindow.Closing runs on the UI thread while Windows is waiting for the window to
+    // acknowledge the close, and a slow/contended Config.Load() there is reported as a hang.
+    // Defaults to true (hide to tray) so a failed read can never silently kill the user's
+    // running services. Refreshed off-thread whenever the settings page may have changed it.
+    private volatile bool _minimizeToTray = true;
+    private bool MinimizeToTrayCached => _minimizeToTray;
+
+    /// <summary>Re-read the tray preference off the UI thread. Called at launch and whenever
+    /// Settings is navigated away from.</summary>
+    public void RefreshTrayPreference() =>
+        BackgroundWork.RunGuarded(() =>
+        {
+            try { _minimizeToTray = Config.Load().MinimizeToTray; } catch { }
+        }, "RefreshTrayPreference");
+
     public MainWindow()
     {
         InitializeComponent();
@@ -36,9 +52,14 @@ public sealed partial class MainWindow : Window
         // Close → hide to tray when "keep running" is on (Settings); otherwise really quit.
         AppWindow.Closing += (_, e) =>
         {
-            if (_reallyQuit || !Config.Load().MinimizeToTray)
+            // Config.Load() reads + parses JSON from disk. Reading it here is a synchronous file
+            // op on the UI thread at the exact moment Windows is watching for the window to
+            // respond to the close, so the value is cached by a background refresh instead.
+            if (_reallyQuit || !MinimizeToTrayCached)
             {
                 _tray.Dispose();
+                // JobManager.Shutdown() now returns immediately (the pid sweep continues on a
+                // pool thread), so the close is not blocked behind process teardown.
                 try { BanglaHost.Core.JobManager.Shutdown(); } catch { }
                 return;
             }
@@ -53,10 +74,19 @@ public sealed partial class MainWindow : Window
         };
 
         _ = FirstRunThenUpdateCheck();
+        RefreshTrayPreference();   // prime the close-path cache off the UI thread
         // Re-check once a day so an instance that stays open (tray/autostart) still notices updates
         // without needing a restart. Same gating + prompt as the launch check.
         _updateTimer.Tick += (_, _) => _ = CheckForUpdateOnLaunch();
         _updateTimer.Start();
+
+        // A 24 h DispatcherTimer that nothing ever stops keeps this window rooted for the life of
+        // the process. Harmless for the single main window, but stop it on close so teardown is
+        // clean and the handler can't run against a disposed window.
+        AppWindow.Destroying += (_, _) =>
+        {
+            try { _updateTimer.Stop(); } catch { }
+        };
     }
 
     /// <summary>On launch: if it's a fresh install with no core stack, offer one-click setup; otherwise
@@ -78,7 +108,12 @@ public sealed partial class MainWindow : Window
         try
         {
             if (!AppWindow.IsVisible || (Content as FrameworkElement)?.XamlRoot is not { } xamlRoot) return false;
-            var missing = EngineHost.Instance.Engine.MissingCore();
+            // MissingCore() probes the install tree for every service (recursive bin\ walks). On a
+            // cold disk that is seconds of synchronous I/O, and it used to run on the UI thread
+            // immediately after launch — the window is up but frozen, which is what Windows
+            // reports as a startup AppHang. Off-thread; the dialog still shows on the UI thread.
+            var missing = await System.Threading.Tasks.Task.Run(
+                () => EngineHost.Instance.Engine.MissingCore());
             if (missing.Count == 0) return false;
 
             var list = string.Join("\n", missing.Select(m => "        •  " + m.label));
@@ -89,7 +124,7 @@ public sealed partial class MainWindow : Window
                 PrimaryButtonText = "Install now", CloseButtonText = "Later",
                 DefaultButton = ContentDialogButton.Primary, XamlRoot = xamlRoot,
             };
-            if (await ask.ShowAsync() != ContentDialogResult.Primary) return true;   // chose Later — still a handled first run
+            if (await DialogQueue.ShowAsync(ask) != ContentDialogResult.Primary) return true;   // chose Later — still a handled first run
 
             // Offer to add Defender exclusions BEFORE anything downloads, so AV can't quarantine the
             // server binaries BanglaHost fetches. Defender-only (other AVs have no API → manual, see README).
@@ -102,44 +137,31 @@ public sealed partial class MainWindow : Window
                 PrimaryButtonText = "Add exclusions", CloseButtonText = "Skip",
                 DefaultButton = ContentDialogButton.Primary, XamlRoot = xamlRoot,
             };
-            if (await avDlg.ShowAsync() == ContentDialogResult.Primary)
+            if (await DialogQueue.ShowAsync(avDlg) == ContentDialogResult.Primary)
             {
                 var (exOk, exMsg) = await System.Threading.Tasks.Task.Run(
                     () => BanglaHost.Core.WindowsDefender.AddExclusions(AppContext.BaseDirectory, BanglaHost.Core.Paths.Home));
                 if (!exOk)
-                    await new ContentDialog
+                {
+                    await DialogQueue.ShowAsync(new ContentDialog
                     {
                         Title = "Couldn't add the exclusions automatically",
                         Content = $"BanglaHost couldn't add the Windows Defender exclusions ({exMsg}).\n\n" +
                                   "Setup will continue. You can add them by hand anytime — see the README's antivirus section.",
                         CloseButtonText = "OK", XamlRoot = xamlRoot,
-                    }.ShowAsync();
+                    });
+                }
             }
 
-            var progress = new ContentDialog
-            {
-                Title = "Setting up BanglaHost…",
-                Content = new StackPanel
-                {
-                    Spacing = 14,
-                    Children =
-                    {
-                        new ProgressRing { IsActive = true, Width = 36, Height = 36, HorizontalAlignment = HorizontalAlignment.Center },
-                        new TextBlock { Text = "Installing nginx, PHP and the database. This takes about a minute…", TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center },
-                    },
-                },
-                XamlRoot = xamlRoot,
-            };
-            _ = progress.ShowAsync();
-            await EngineHost.Instance.RunCaptured(() =>
+            await EngineHost.Instance.RunTracked("Initial Setup", () =>
             {
                 EngineHost.Instance.Engine.Install("all");
                 EngineHost.Instance.Engine.Start("all");
             });
-            progress.Hide();
 
-            var still = EngineHost.Instance.Engine.MissingCore();
-            await new ContentDialog
+            var still = await System.Threading.Tasks.Task.Run(
+                () => EngineHost.Instance.Engine.MissingCore());
+            await DialogQueue.ShowAsync(new ContentDialog
             {
                 Title = still.Count == 0 ? "BanglaHost is ready \U0001F389" : "Setup didn't fully finish",
                 Content = still.Count == 0
@@ -147,7 +169,7 @@ public sealed partial class MainWindow : Window
                     : "These couldn't be installed:\n\n" + string.Join("\n", still.Select(m => "        •  " + m.label)) +
                       "\n\nYou can retry from the Services tab (check your antivirus if a download was blocked).",
                 CloseButtonText = "OK", XamlRoot = xamlRoot,
-            }.ShowAsync();
+            });
             return true;
         }
         catch { return false; }
@@ -203,10 +225,13 @@ public sealed partial class MainWindow : Window
         };
         try
         {
-            if (await dlg.ShowAsync() == ContentDialogResult.Primary)
+            // Must go through DialogQueue: WinUI 3 permits exactly one open ContentDialog, and a
+            // raw ShowAsync() here collided with the first-run / Defender dialogs (an update found
+            // during setup threw COMException "Only a single ContentDialog can be open at a time").
+            if (await DialogQueue.ShowAsync(dlg) == ContentDialogResult.Primary)
                 Updater.OpenStore();
         }
-        catch { /* another dialog already open — re-offered on the next check */ }
+        catch { /* window torn down mid-prompt — re-offered on the next check */ }
     }
 
     /// <summary>Autostart-at-login entry point: keep BanglaHost running in the tray ONLY. The window is
@@ -389,7 +414,7 @@ public sealed partial class MainWindow : Window
                     CloseButtonText = "OK",
                     XamlRoot = this.Content.XamlRoot,
                 };
-                try { await dlg.ShowAsync(); } catch { }
+                try { await DialogQueue.ShowAsync(dlg); } catch { }
             }
         }
         } catch (OperationCanceledException) { }

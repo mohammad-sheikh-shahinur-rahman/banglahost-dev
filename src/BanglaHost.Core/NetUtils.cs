@@ -71,34 +71,18 @@ public static class NetUtils
     public static async Task<bool> IsListeningAsync(int port, int timeoutMs = 400, CancellationToken ct = default)
     {
         if (port <= 0 || port > 65535) return false;
-
-        using var client = new TcpClient(AddressFamily.InterNetwork);
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeoutMs);
-
         try
         {
-            await client.ConnectAsync(IPAddress.Loopback, port, timeoutCts.Token).ConfigureAwait(false);
-            return client.Connected;
+            return await Task.Run(() => IsListening(port, timeoutMs), ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Caller-requested cancellation: propagate so a superseded snapshot stops early.
             throw;
         }
-        catch (OperationCanceledException)
-        {
-            return false;   // our own timeout — port is not answering promptly
-        }
-        catch (SocketException)
-        {
-            return false;   // connection refused: nothing listening. The common, fast path.
-        }
-        catch (ObjectDisposedException)
+        catch
         {
             return false;
         }
-        // The using disposes the client only after the await has completed, one way or another.
     }
 
     /// <summary>Probe many ports at once under a single shared deadline. Used by the dashboard
@@ -112,21 +96,40 @@ public static class NetUtils
     }
 
     /// <summary>
-    /// Synchronous liveness probe, for the CLI and other genuinely synchronous callers.
-    /// Blocks the calling thread by design — never call this from the UI thread or from inside a
-    /// loop over many services (use <see cref="AreListeningAsync"/> for that).
+    /// Synchronous liveness probe using non-blocking Socket.Poll.
+    /// Does not use IOCP or BeginConnect, eliminating thread-pool crash on timeout when disposed.
     /// </summary>
     public static bool IsListening(int port, int timeoutMs = 400)
     {
         if (port <= 0 || port > 65535) return false;
         try
         {
-            using var client = new TcpClient(AddressFamily.InterNetwork);
-            var result = client.BeginConnect(IPAddress.Loopback, port, null, null);
-            var success = result.AsyncWaitHandle.WaitOne(timeoutMs);
-            if (!success) return false;
-            client.EndConnect(result);
-            return true;
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            socket.Blocking = false;
+            try
+            {
+                socket.Connect(new IPEndPoint(IPAddress.Loopback, port));
+                return true;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.WouldBlock or SocketError.InProgress)
+            {
+                // Socket.Poll takes MICROSECONDS as an int. timeoutMs * 1000 overflows int above
+                // ~2147 ms, and a negative microsecond value means "block forever" — so a caller
+                // passing a 3 s timeout turned a bounded probe into an unbounded one on a filtered
+                // loopback, hanging whatever thread it ran on. Clamped to a safe range.
+                const int MaxPollMs = int.MaxValue / 1000;   // ~2147 ms
+                var pollMicros = Math.Clamp(timeoutMs, 0, MaxPollMs) * 1000;
+                if (socket.Poll(pollMicros, SelectMode.SelectWrite))
+                {
+                    var err = (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Error)!;
+                    return err == 0;
+                }
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
         }
         catch { return false; }
     }

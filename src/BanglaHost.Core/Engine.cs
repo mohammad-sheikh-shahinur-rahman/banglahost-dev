@@ -1102,6 +1102,9 @@ public sealed class Engine
         catch { /* best-effort â€” never block launch */ }
     }
 
+    /// <summary>List configured sites from nginx vhost files. Fast, pure disk read, no service network probes.</summary>
+    public IReadOnlyList<Site> Sites() => ListSites(Config.Load());
+
     private static IReadOnlyList<Site> ListSites(Config cfg)
     {
         var list = new List<Site>();

@@ -16,7 +16,7 @@
     <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
     <Platforms>x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
-    <Version>1.6.5.0</Version>
+    <Version>1.6.6.0</Version>
     <Company>IT Amadersomaj Inc</Company>
     <Product>BanglaHost Local Web Server</Product>
     <Description>BanglaHost Local Web Server</Description>

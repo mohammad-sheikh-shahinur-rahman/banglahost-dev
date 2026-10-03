@@ -64,12 +64,38 @@ public sealed partial class DashboardPage : Page
         base.OnNavigatedFrom(e);
     }
 
+    /// <summary>
+    /// Append the one new line. The old code assigned <c>EngineHost.Instance.LogText</c> — the
+    /// full log — into the TextBox for EVERY appended line, so an install that emits n lines did
+    /// O(n²) string allocation plus n full TextBox re-layouts on the UI thread. During
+    /// "Install all" that is thousands of lines and the window stops responding, which Windows
+    /// reports as an AppHang. The log itself is now bounded in EngineHost; this keeps the UI
+    /// cost per line constant, and re-syncs from the source if trimming has moved the window.
+    /// </summary>
     private void OnLog(string line) =>
         DispatcherQueue?.TryEnqueue(() =>
         {
-            LogBox.Text = EngineHost.Instance.LogText;
-            LogScroll.ChangeView(null, LogScroll.ScrollableHeight, null);
+            if (XamlRoot is null) return;   // page navigated away between enqueue and dispatch
+            try
+            {
+                if (LogBox.Text.Length > LogTextCap)
+                    LogBox.Text = EngineHost.Instance.LogText;   // bounded source, re-sync once
+                else
+                    LogBox.Text += line + Environment.NewLine;
+
+                LogScroll.ChangeView(null, LogScroll.ScrollableHeight, null);
+            }
+            catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "DashboardLog"); }
         });
+
+    // Keep the visible log under EngineHost's own bound; past this we re-read the trimmed source.
+    private const int LogTextCap = 256 * 1024;
+
+    private record struct DashboardMetrics(
+        double Cpu,
+        (double usedGB, double totalGB, double pct) Mem,
+        (double usedGB, double totalGB, double pct) Disk,
+        (double downKbps, double upKbps) Net);
 
     /// <summary>Guarded refresh: drops the tick when one is in flight, measures the
     /// work and reschedules afterwards so a slow machine gets slower refreshes
@@ -82,11 +108,24 @@ public sealed partial class DashboardPage : Page
         try
         {
             Snapshot snap;
-            try { snap = await EngineHost.Instance.Snapshot(token).ConfigureAwait(true); }
+            DashboardMetrics metrics;
+            try
+            {
+                var snapTask = EngineHost.Instance.Snapshot(token);
+                var metricsTask = Task.Run(() => new DashboardMetrics(
+                    SystemMetrics.CpuPercent(),
+                    SystemMetrics.Memory(),
+                    SystemMetrics.Disk(),
+                    SystemMetrics.Network()), token);
+
+                await Task.WhenAll(snapTask, metricsTask).ConfigureAwait(true);
+                snap = snapTask.Result;
+                metrics = metricsTask.Result;
+            }
             catch (OperationCanceledException) { return; }
             catch { return; }
             if (token.IsCancellationRequested) return;
-            ApplySnapshot(snap);
+            ApplySnapshot(snap, metrics);
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { BanglaHost.App.Services.CrashLogger.Log(ex, "DashboardRefresh"); }
@@ -97,7 +136,7 @@ public sealed partial class DashboardPage : Page
         }
     }
 
-    private void ApplySnapshot(Snapshot snap)
+    private void ApplySnapshot(Snapshot snap, DashboardMetrics metrics)
     {
         // Pure UI updates, no I/O. Runs on the dispatcher (callers ConfigureAwait(true)).
         if (XamlRoot is null) return;
@@ -130,7 +169,7 @@ public sealed partial class DashboardPage : Page
         CacheDot.Fill = redis || memc ? On : Off;
 
         // ── metrics ──
-        var cpu = SystemMetrics.CpuPercent(); CpuText.Text = $"{cpu:0}%";
+        var cpu = metrics.Cpu; CpuText.Text = $"{cpu:0}%";
         _cpuHist.Enqueue(cpu);
         while (_cpuHist.Count > 40) _cpuHist.Dequeue();
         var arr = _cpuHist.ToArray();
@@ -142,11 +181,11 @@ public sealed partial class DashboardPage : Page
             pts.Add(new Windows.Foundation.Point(x, y));
         }
         CpuSpark.Points = pts;
-        var (mu, mt, mp) = SystemMetrics.Memory(); MemText.Text = $"{mu:0.0} / {mt:0.0} GB";
+        var (mu, mt, mp) = metrics.Mem; MemText.Text = $"{mu:0.0} / {mt:0.0} GB";
         SetBar(MemBar, mp);
-        var (du, dt, dp) = SystemMetrics.Disk(); DiskText.Text = $"{du:0} / {dt:0} GB";
+        var (du, dt, dp) = metrics.Disk; DiskText.Text = $"{du:0} / {dt:0} GB";
         SetBar(DiskBar, dp);
-        var (down, up) = SystemMetrics.Network();
+        var (down, up) = metrics.Net;
         NetDown.Text = $"Down  {Rate(down)}"; NetUp.Text = $"Up  {Rate(up)}";
 
         SubTitle.Text = $"{snap.Services.Count(s => s.Running)} services running / {sites.Count} sites";
@@ -266,7 +305,7 @@ public sealed partial class DashboardPage : Page
         if (!ok && output.Length > 0)
         {
             if (this.Content == null || this.XamlRoot == null) return;
-            await new ContentDialog { Title = "Web tool", Content = output, CloseButtonText = "OK", XamlRoot = this.XamlRoot }.ShowAsync();
+            await BanglaHost.App.Services.DialogQueue.ShowAsync(new ContentDialog { Title = "Web tool", Content = output, CloseButtonText = "OK", XamlRoot = this.XamlRoot });
         }
     }
 

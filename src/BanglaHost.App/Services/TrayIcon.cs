@@ -52,7 +52,7 @@ public sealed class TrayIcon : IDisposable
         };
         RegisterClass(ref wc);
         _hwnd = CreateWindowEx(0, _className, "BanglaHostTray", 0, 0, 0, 0, 0,
-                               IntPtr.Zero, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
+                               HWND_MESSAGE, IntPtr.Zero, wc.hInstance, IntPtr.Zero);
 
         var data = NewData(tooltip);
         data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
@@ -66,6 +66,8 @@ public sealed class TrayIcon : IDisposable
         data.hIcon = _hIcon;
         data.szTip = tooltip;
         _added = Shell_NotifyIcon(NIM_ADD, ref data);
+
+        StartSiteRefresh();   // build the site submenu off the UI thread
     }
 
     private NOTIFYICONDATA NewData(string tip) => new()
@@ -104,32 +106,78 @@ public sealed class TrayIcon : IDisposable
 
     private readonly System.Collections.Generic.Dictionary<int, string> _siteCmdMap = new();
 
+    // The site list shown in the tray submenu is refreshed on a background timer and cached here.
+    // Engine.Sites() does a Config.Load() plus a File.ReadAllText per *.conf, and ShowMenu() runs
+    // inside the message-only window's WndProc on the UI thread — so the old code did unbounded
+    // disk I/O with the track-popup-menu about to become modal, which is a textbook AppHang
+    // (the user right-clicks, Windows sees the UI thread stop pumping, and the Store logs a hang).
+    // Now the WndProc only reads this snapshot; the disk work happens off-thread on a timer.
+    private readonly List<(string Domain, string Url)> _siteMenuCache = new();
+    private System.Threading.Timer? _siteRefreshTimer;
+    private readonly object _siteCacheGate = new();
+
+    /// <summary>Start the background refresh of the tray's site submenu. Never throws; a failure
+    /// just leaves the previous snapshot (or an empty submenu) in place.</summary>
+    private void StartSiteRefresh()
+    {
+        try
+        {
+            RefreshSiteMenuCache();
+            _siteRefreshTimer = new System.Threading.Timer(
+                _ => RefreshSiteMenuCache(), null,
+                TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(20));
+        }
+        catch { }
+    }
+
+    private void RefreshSiteMenuCache()
+    {
+        try
+        {
+            var engine = BanglaHost.App.Services.EngineHost.Instance?.Engine;
+            if (engine is null) return;
+
+            var sites = engine.Sites();
+            var fresh = new List<(string, string)>(sites?.Count ?? 0);
+            if (sites is not null)
+                foreach (var site in sites)
+                    if (!string.IsNullOrEmpty(site.Domain))
+                        fresh.Add((site.Domain, (site.Secure ? "https://" : "http://") + site.Domain));
+
+            lock (_siteCacheGate)
+            {
+                _siteMenuCache.Clear();
+                _siteMenuCache.AddRange(fresh);
+            }
+        }
+        catch { /* tray menu is best-effort — keep the last good snapshot */ }
+    }
+
     private void ShowMenu()
     {
         var menu = CreatePopupMenu();
         AppendMenu(menu, 0, CMD_OPEN, "Open BanglaHost");
         AppendMenu(menu, 0x800, 0, null);          // MF_SEPARATOR
-        
+
         try
         {
-            var engineHost = BanglaHost.App.Services.EngineHost.Instance;
-            if (engineHost?.Engine != null)
+            // Only ever read the pre-built snapshot here — no disk I/O on the UI thread.
+            List<(string Domain, string Url)> sites;
+            lock (_siteCacheGate) sites = new List<(string, string)>(_siteMenuCache);
+
+            if (sites.Count > 0)
             {
-                var api = engineHost.Engine.Api();
-                if (api.Sites != null && api.Sites.Count > 0)
+                _siteCmdMap.Clear();
+                var sitesMenu = CreatePopupMenu();
+                int siteCmdId = 1000;
+                foreach (var (domain, siteUrl) in sites)
                 {
-                    _siteCmdMap.Clear();
-                    var sitesMenu = CreatePopupMenu();
-                    int siteCmdId = 1000;
-                    foreach (var site in api.Sites)
-                    {
-                        AppendMenu(sitesMenu, 0, siteCmdId, site.Domain);
-                        _siteCmdMap[siteCmdId] = (site.Secure ? "https://" : "http://") + site.Domain;
-                        siteCmdId++;
-                    }
-                    AppendMenu(menu, 0x10, sitesMenu, "Sites"); // 0x10 = MF_POPUP
-                    AppendMenu(menu, 0x800, 0, null);
+                    AppendMenu(sitesMenu, 0, siteCmdId, domain);
+                    _siteCmdMap[siteCmdId] = siteUrl;
+                    siteCmdId++;
                 }
+                AppendMenu(menu, 0x10, sitesMenu, "Sites"); // 0x10 = MF_POPUP
+                AppendMenu(menu, 0x800, 0, null);
             }
         }
         catch { }
@@ -165,6 +213,9 @@ public sealed class TrayIcon : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+
+        try { _siteRefreshTimer?.Dispose(); } catch { }
+        _siteRefreshTimer = null;
 
         if (_added) { var d = NewData(""); Shell_NotifyIcon(NIM_DELETE, ref d); _added = false; }
         if (_hwnd != IntPtr.Zero) DestroyWindow(_hwnd);
