@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace BanglaHost.Core;
@@ -35,7 +36,20 @@ public static class JobManager
     // Fallback bookkeeping when the OS won't give us a job object. Not as strong as a job
     // (a hard-killed host can't run cleanup) but it lets `Shutdown` and the next launch's
     // reaper find strays instead of leaving them forever.
-    private static readonly List<int> _trackedPids = new();
+    //
+    // We record the image NAME alongside the pid, not just the pid. Windows recycles pids
+    // aggressively: by the time the user closes the window, a pid recorded an hour ago can
+    // belong to an unrelated process, and `Kill(entireProcessTree: true)` would then take out
+    // something that was never ours. The name is captured by the spawner (which knows what it
+    // started) so the kill stays verifiable — same contract as ProcessUtils.KillSafeChecked.
+    private readonly record struct TrackedProcess(int Pid, string Name);
+
+    private static readonly List<TrackedProcess> _tracked = new();
+
+    // Hard ceiling on the fallback list. It is fed by the php-cgi watchdog and the service
+    // start paths, so a machine that churns services all day would otherwise grow it without
+    // bound and make shutdown slower every hour. Oldest entries fall off first.
+    private const int MaxTracked = 512;
 
     /// <summary>True when the OS gave us a real job object. False means we're on pid tracking.</summary>
     public static bool JobObjectAvailable { get { lock (_gate) { EnsureInit(); return _job != null; } } }
@@ -77,6 +91,11 @@ public static class JobManager
         if (process is null) return;
         try
         {
+            // Capture the image name BEFORE taking the lock — ProcessName is a handle query and
+            // the old code held _gate across it on every spawn.
+            string name;
+            try { name = process.ProcessName; } catch { name = ""; }
+
             lock (_gate)
             {
                 EnsureInit();
@@ -84,12 +103,12 @@ public static class JobManager
                 var added = _job?.TryAddProcess(process) ?? false;
                 if (!added)
                 {
-                    try { if (!process.HasExited) _trackedPids.Add(process.Id); } catch { }
+                    try { if (!process.HasExited) Track(process.Id, name); } catch { }
                 }
                 else
                 {
                     // Track it as well — cheap, and lets Shutdown report what it owns.
-                    try { _trackedPids.Add(process.Id); } catch { }
+                    try { Track(process.Id, name); } catch { }
                 }
             }
         }
@@ -99,13 +118,43 @@ public static class JobManager
         }
     }
 
+    /// <summary>Record a pid + image name, pruning entries that have already exited so the list
+    /// stays proportional to what is actually running rather than to session length.</summary>
+    private static void Track(int pid, string name)
+    {
+        for (var i = _tracked.Count - 1; i >= 0; i--)
+        {
+            if (_tracked[i].Pid == pid) return;              // already known
+            if (!IsAlive(_tracked[i].Pid)) _tracked.RemoveAt(i);
+        }
+        _tracked.Add(new TrackedProcess(pid, name));
+        while (_tracked.Count > MaxTracked) _tracked.RemoveAt(0);
+    }
+
+    private static bool IsAlive(int pid)
+    {
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            return !p.HasExited;
+        }
+        catch { return false; }
+    }
+
     /// <summary>
     /// Kill everything we own. Called on GUI shutdown. Safe to call more than once, and safe to
     /// call when ownership is detached (in which case it does nothing — the CLI's whole point is
     /// that its children outlive it).
+    ///
+    /// The job-object dispose is synchronous and fast (the kernel kills the members). The pid
+    /// fallback is NOT: it opens a handle per pid and can block for seconds on a long-lived
+    /// session — and it used to run inside <c>lock (_gate)</c> on the UI thread, which is one of
+    /// the paths that produced the field AppHangs. The list is snapshotted under the lock, the
+    /// lock is released, and the sweep continues underneath so the caller returns immediately.
     /// </summary>
     public static void Shutdown()
     {
+        TrackedProcess[] sweep;
         lock (_gate)
         {
             if (!_killChildrenOnExit) return;
@@ -116,22 +165,65 @@ public static class JobManager
             _job = null;
             _initialised = false;
 
-            // Belt and braces for anything that only made it into pid tracking.
-            foreach (var pid in _trackedPids)
+            sweep = _tracked.ToArray();
+            _tracked.Clear();
+        }
+
+        if (sweep.Length == 0) return;
+
+        // Belt and braces for anything that only made it into pid tracking. Off the caller's
+        // thread so process teardown never pins the UI. Name-verified: a recycled pid whose
+        // current owner isn't the process we recorded is left alone.
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            foreach (var t in sweep)
             {
                 try
                 {
-                    using var p = Process.GetProcessById(pid);
-                    if (!p.HasExited) p.Kill(entireProcessTree: true);
+                    if (string.IsNullOrEmpty(t.Name))
+                    {
+                        // No name captured (the spawner couldn't read ProcessName). Fall back to
+                        // killing only if the image path is under our own install root.
+                        KillIfOurs(t.Pid);
+                    }
+                    else
+                    {
+                        ProcessUtils.KillSafeChecked(t.Pid, t.Name);
+                    }
                 }
                 catch { /* already gone, or not ours any more */ }
             }
-            _trackedPids.Clear();
+        });
+    }
+
+    /// <summary>Last-resort kill for an entry with no recorded image name: only fires when the
+    /// process image lives under BanglaHost's own directories, so a recycled pid pointing at an
+    /// unrelated application is never touched.</summary>
+    private static void KillIfOurs(int pid)
+    {
+        try
+        {
+            using var p = Process.GetProcessById(pid);
+            if (p.HasExited) return;
+            string path;
+            try { path = p.MainModule?.FileName ?? ""; } catch { return; }   // deny-by-default
+            if (path.Length == 0) return;
+
+            var home = Paths.Home;
+            var app = AppContext.BaseDirectory;
+            var ours =
+                (home.Length > 0 && path.StartsWith(home, StringComparison.OrdinalIgnoreCase)) ||
+                (app.Length > 0 && path.StartsWith(app, StringComparison.OrdinalIgnoreCase));
+            if (ours) p.Kill(entireProcessTree: true);
         }
+        catch { }
     }
 
     /// <summary>Pids we believe we own, for diagnostics and the stray reaper.</summary>
-    public static int[] TrackedPids { get { lock (_gate) return _trackedPids.ToArray(); } }
+    public static int[] TrackedPids
+    {
+        get { lock (_gate) return _tracked.Select(t => t.Pid).ToArray(); }
+    }
 
     private static void EnsureInit()
     {

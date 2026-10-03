@@ -70,7 +70,24 @@ public static class Hosts
         if (!IsElevated()) return false;
         try
         {
-            File.AppendAllText(Paths.HostsFile, $"{safeIp} {domain} {Tag}{Environment.NewLine}");
+            // The hosts file is user-editable and other tools write it too, so it cannot be
+            // assumed to end in a newline. A plain AppendAllText onto a file whose last line is
+            // unterminated concatenates our entry onto that line, producing one corrupt line and
+            // silently losing BOTH mappings — including an unrelated one the user owns.
+            var lead = "";
+            try
+            {
+                using var fs = new FileStream(Paths.HostsFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                if (fs.Length > 0)
+                {
+                    fs.Seek(-1, SeekOrigin.End);
+                    var last = fs.ReadByte();
+                    if (last is not ('\n' or '\r')) lead = Environment.NewLine;
+                }
+            }
+            catch { lead = Environment.NewLine; }   // can't tell — a blank line is harmless, a merge is not
+
+            File.AppendAllText(Paths.HostsFile, $"{lead}{safeIp} {domain} {Tag}{Environment.NewLine}");
             return true;
         }
         catch (UnauthorizedAccessException) { throw new BhException("Failed to modify hosts file. Your antivirus may be blocking it, or the file is read-only."); }

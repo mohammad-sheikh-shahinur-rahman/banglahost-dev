@@ -38,10 +38,43 @@ public partial class App : Application
         // touches config + the globalization API and InitializeComponent() parses App.xaml; a
         // throw from either used to happen while no handler was attached, which is an instant
         // silent process death with no log entry — exactly the "Uncategorized" bucket.
+        // The UI UnhandledException handler decides between RECOVER and CRASH. Both paths log;
+        // only the recover path swallows.
+        //
+        // Why this is not "always swallow": `e.Handled = true` suppresses the WER fault, so
+        // Windows never writes a minidump and the Store receives only "Uncategorized" hits with
+        // no stack — which is exactly the 1 Crash / 3 Hangs bucket (100% uncategorized) this
+        // build is fixing. A swallowed exception that keeps firing also leaves the app in a
+        // wedged half-state that Windows eventually reports as an AppHang anyway.
+        //
+        // So we swallow ONLY the narrow set of exceptions that are known to be survivable —
+        // they all mean "the UI object I wanted is already gone", and the correct response is to
+        // drop that one callback, not to kill the process. Anything else is a genuine fault:
+        // we log it and then let it terminate so the crash is diagnosable in the field.
+        //
+        // BANGLAHOST_DIAGNOSTIC=1 forces every exception down the terminating path, so a
+        // developer can get a full fault for an exception that would normally be absorbed.
         this.UnhandledException += (s, e) =>
         {
             BanglaHost.App.Services.CrashLogger.Log(e.Exception, "UI UnhandledException");
-            e.Handled = true;
+
+            if (BanglaHost.App.Services.CrashLogger.DiagnosticMode)
+            {
+                e.Handled = false;   // let WER capture it
+                return;
+            }
+
+            if (IsRecoverableUiException(e.Exception))
+            {
+                e.Handled = true;    // drop this one callback; the window stays usable
+                return;
+            }
+
+            // Unhandled by design: fault the process so the crash carries a stack.
+            try { BanglaHost.App.Services.CrashLogger.WriteCrashBreadcrumb(e.Exception); } catch { }
+            BanglaHost.App.Services.CrashLogger.Flush();
+            try { BanglaHost.Core.JobManager.Shutdown(); } catch { }   // don't orphan services on the way down
+            e.Handled = false;
         };
 
         AppDomain.CurrentDomain.UnhandledException += (s, e) =>
@@ -89,6 +122,52 @@ public partial class App : Application
         ApplySavedLanguage();
 
         InitializeComponent();
+    }
+
+    /// <summary>
+    /// True for the narrow set of exceptions raised by a WinUI callback against an object that
+    /// has already been torn down (page navigated away, window closed, XAML tree disconnected).
+    /// These are the classic source of the "async void on a dead page" storm; dropping the single
+    /// callback is correct and the app stays usable.
+    ///
+    /// Everything else — NullReferenceException, InvalidOperationException from a real state
+    /// bug, an I/O failure on startup — is NOT recoverable here and must fault so the crash
+    /// carries a stack into WER/Partner Center instead of being absorbed into "Uncategorized".
+    /// </summary>
+    private static bool IsRecoverableUiException(Exception? ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+        {
+            switch (e)
+            {
+                // Normal cancellation flow — never a fault.
+                case OperationCanceledException:
+                // The target UI object is gone; there is nothing left to update.
+                case ObjectDisposedException:
+                    return true;
+
+                // WinUI/COM marshalling failures are almost always a dispatcher-reentrancy or
+                // torn-down-XamlRoot race. One callback is lost; the window is still fine.
+                case System.Runtime.InteropServices.COMException com:
+                    // RPC_E_DISCONNECTED (0x80010108) / RO_E_CLOSED (0x80000013) /
+                    // E_ILLEGAL_METHOD_CALL (0x8000000E) — the WinRT object is disconnected.
+                    const int RPC_E_DISCONNECTED = unchecked((int)0x80010108);
+                    const int RO_E_CLOSED = unchecked((int)0x80000013);
+                    const int E_ILLEGAL_METHOD_CALL = unchecked((int)0x8000000E);
+                    if (com.HResult is RPC_E_DISCONNECTED or RO_E_CLOSED or E_ILLEGAL_METHOD_CALL)
+                        return true;
+                    break;
+
+                // WinUI throws this for a control that is already in the tree or already loaded.
+                // Layout-only; the page renders, so absorb it.
+                case InvalidOperationException inv
+                    when inv.Message.Contains("XamlRoot", StringComparison.OrdinalIgnoreCase)
+                      || inv.Message.Contains("already", StringComparison.OrdinalIgnoreCase)
+                      || inv.Message.Contains("dispatcher", StringComparison.OrdinalIgnoreCase):
+                    return true;
+            }
+        }
+        return false;
     }
 
     // The inline LogCrash has been moved to Services.CrashLogger

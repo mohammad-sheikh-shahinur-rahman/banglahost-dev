@@ -6,26 +6,60 @@ namespace BanglaHost.Core;
 /// </summary>
 public static class Paths
 {
+    // Home is read thousands of times per session (every Sub() call, every log path) and the old
+    // implementation re-read the env var, opened a registry key and probed the disk on EVERY
+    // access — including from the php-cgi watchdog and the dashboard's 2 s refresh. Worse, the
+    // fallback branch meant a transient failure mid-session silently moved the data root to
+    // %LOCALAPPDATA%, so files written before and after that moment landed in different trees.
+    //
+    // Resolved once on first use and cached. BANGLAHOST_HOME and the registry value are
+    // documented as install-time settings, so a mid-session change is not a supported scenario;
+    // tests that need to re-point it can call ResetCache().
+    private static string? _home;
+    private static readonly object _homeGate = new();
+
     /// <summary>Root data dir, overridable via the BANGLAHOST_HOME env var, or Registry.</summary>
     public static string Home
     {
         get
         {
-            if (Environment.GetEnvironmentVariable("BANGLAHOST_HOME") is { Length: > 0 } h) return h;
-            if (GetRegistryInstallPath() is { Length: > 0 } reg) return reg;
-            
-            var primary = @"C:\BanglaHost";
-            try
+            var cached = _home;
+            if (cached is not null) return cached;
+
+            lock (_homeGate)
             {
-                if (!System.IO.Directory.Exists(primary))
-                    System.IO.Directory.CreateDirectory(primary);
-                return primary;
-            }
-            catch
-            {
-                return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BanglaHost");
+                if (_home is not null) return _home;   // lost the race; another thread resolved it
+
+                var resolved = ResolveHome();
+                _home = resolved;
+                return resolved;
             }
         }
+    }
+
+    private static string ResolveHome()
+    {
+        if (Environment.GetEnvironmentVariable("BANGLAHOST_HOME") is { Length: > 0 } h) return h;
+        if (GetRegistryInstallPath() is { Length: > 0 } reg) return reg;
+
+        var primary = @"C:\BanglaHost";
+        try
+        {
+            if (!System.IO.Directory.Exists(primary))
+                System.IO.Directory.CreateDirectory(primary);
+            return primary;
+        }
+        catch
+        {
+            return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BanglaHost");
+        }
+    }
+
+    /// <summary>Drop the memoised root so the next access re-resolves it. For tests and for the
+    /// installer, which changes BANGLAHOST_HOME and expects the change to take effect.</summary>
+    public static void ResetCache()
+    {
+        lock (_homeGate) _home = null;
     }
 
     private static string? GetRegistryInstallPath()

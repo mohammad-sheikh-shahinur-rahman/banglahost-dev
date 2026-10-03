@@ -84,14 +84,28 @@ public static class PhpCgi
         EnsureLimits(Path.GetDirectoryName(exe)!, version);
 
         var port = PortFor(version);
+        // Do NOT redirect stdout/stderr here.
+        //
+        // php-cgi writes startup diagnostics to stderr, and a Windows anonymous pipe has a ~4 KB
+        // buffer. With RedirectStandardOutput/Error = true and no reader, the child blocks on
+        // write() the moment it fills that buffer — the process is alive, holds the port, never
+        // serves a request, and nginx answers 504. Because Process.Start returns successfully the
+        // watchdog sees a healthy process and never restarts it, so the site hangs until a manual
+        // restart. DbServer.cs already documents exactly this hazard; PhpCgi was the one spawn
+        // path that ignored it.
+        //
+        // The correct fix is either to drain both streams on continuations or to let the child
+        // write to the console/WER directly. We do the latter: php-cgi's own error_log (pointed
+        // at Paths.Logs by EnsureLimits) is the supported channel for PHP diagnostics, and
+        // CreateNoWindow keeps the window hidden, so nothing is lost by not redirecting.
         var psi = new ProcessStartInfo
         {
             FileName = exe,
             Arguments = $"-b 127.0.0.1:{port}",
             UseShellExecute = false,
             CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
+            RedirectStandardOutput = false,
+            RedirectStandardError = false,
             WorkingDirectory = Path.GetDirectoryName(exe)!,
         };
         psi.Environment["PHP_FCGI_MAX_REQUESTS"] = "10000";

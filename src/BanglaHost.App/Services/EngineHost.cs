@@ -15,6 +15,14 @@ public sealed class EngineHost
     private readonly System.Text.StringBuilder _log = new();
     public event Action<string>? LogAppended;
 
+    // The in-memory log is bounded. It used to be an unbounded StringBuilder, and because
+    // DashboardPage.OnLog assigned the WHOLE of LogText into a TextBox on every appended line,
+    // an install that logs thousands of lines turned the dashboard into O(n²) string work on the
+    // UI thread — the app visibly stops responding, which is what Windows reports as an AppHang.
+    // Trimming keeps both the copy cost and the TextBox content bounded.
+    private const int MaxLogChars = 256 * 1024;
+    private const int TrimToChars = 192 * 1024;   // trim in chunks so we don't memmove per line
+
     public Engine Engine { get; }
 
     private EngineHost()
@@ -29,7 +37,19 @@ public sealed class EngineHost
 
     public void Append(string line)
     {
-        lock (_log) { _log.AppendLine(line); }
+        lock (_log)
+        {
+            _log.AppendLine(line);
+            if (_log.Length > MaxLogChars)
+            {
+                var cut = _log.Length - TrimToChars;
+                // Cut on a line boundary so the first retained line isn't a fragment.
+                var probe = _log.ToString(cut, Math.Min(512, _log.Length - cut));
+                var nl = probe.IndexOf('\n');
+                if (nl >= 0) cut += nl + 1;
+                _log.Remove(0, cut);
+            }
+        }
         LogAppended?.Invoke(line);
     }
 
